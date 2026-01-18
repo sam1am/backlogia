@@ -1,0 +1,305 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Settings - Game Library</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            min-height: 100vh;
+            color: #e4e4e4;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        header {
+            text-align: center;
+            padding: 40px 0;
+        }
+
+        header h1 {
+            font-size: 2.5rem;
+            background: linear-gradient(90deg, #667eea, #764ba2);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .back-link {
+            display: inline-block;
+            margin-bottom: 20px;
+            color: #667eea;
+            text-decoration: none;
+            font-size: 0.9rem;
+        }
+
+        .back-link:hover {
+            text-decoration: underline;
+        }
+
+        .settings-form {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 12px;
+            padding: 30px;
+        }
+
+        .section {
+            margin-bottom: 30px;
+        }
+
+        .section:last-child {
+            margin-bottom: 0;
+        }
+
+        .section-header {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .section-icon {
+            width: 32px;
+            height: 32px;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1rem;
+        }
+
+        .section-icon.steam { background: #1b2838; }
+        .section-icon.igdb { background: #9147ff; }
+        .section-icon.itch { background: #fa5c5c; }
+
+        .section-title {
+            font-size: 1.2rem;
+            font-weight: 600;
+        }
+
+        .section-description {
+            font-size: 0.85rem;
+            color: #888;
+            margin-top: 4px;
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 6px;
+            font-size: 0.9rem;
+            color: #ccc;
+        }
+
+        .form-group input {
+            width: 100%;
+            padding: 12px 16px;
+            border: none;
+            border-radius: 8px;
+            background: rgba(255, 255, 255, 0.1);
+            color: #e4e4e4;
+            font-size: 1rem;
+            font-family: monospace;
+        }
+
+        .form-group input::placeholder {
+            color: #666;
+        }
+
+        .form-group input:focus {
+            outline: none;
+            background: rgba(255, 255, 255, 0.15);
+            box-shadow: 0 0 0 2px rgba(102, 126, 234, 0.3);
+        }
+
+        .help-text {
+            font-size: 0.8rem;
+            color: #888;
+            margin-top: 6px;
+        }
+
+        .help-text a {
+            color: #667eea;
+        }
+
+        .button-group {
+            display: flex;
+            gap: 15px;
+            margin-top: 30px;
+            padding-top: 20px;
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .btn {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 8px;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: all 0.2s;
+            text-decoration: none;
+        }
+
+        .btn-primary {
+            background: linear-gradient(90deg, #667eea, #764ba2);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 20px rgba(102, 126, 234, 0.3);
+        }
+
+        .btn-secondary {
+            background: rgba(255, 255, 255, 0.1);
+            color: #e4e4e4;
+        }
+
+        .btn-secondary:hover {
+            background: rgba(255, 255, 255, 0.2);
+        }
+
+        .success-message {
+            background: linear-gradient(90deg, rgba(76, 175, 80, 0.2), rgba(46, 125, 50, 0.2));
+            border: 1px solid rgba(76, 175, 80, 0.3);
+            border-radius: 8px;
+            padding: 15px 20px;
+            margin-bottom: 20px;
+            color: #81c784;
+        }
+
+        @media (max-width: 600px) {
+            .settings-form {
+                padding: 20px;
+            }
+
+            .button-group {
+                flex-direction: column;
+            }
+
+            .btn {
+                text-align: center;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <a href="/" class="back-link">&larr; Back to Library</a>
+
+        <header>
+            <h1>Settings</h1>
+        </header>
+
+        {% if success %}
+        <div class="success-message">
+            Settings saved successfully!
+        </div>
+        {% endif %}
+
+        <form class="settings-form" method="POST" action="/settings">
+            <!-- Steam Section -->
+            <div class="section">
+                <div class="section-header">
+                    <div class="section-icon steam">S</div>
+                    <div>
+                        <div class="section-title">Steam</div>
+                        <div class="section-description">Connect to your Steam library</div>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="steam_id">Steam ID (64-bit)</label>
+                    <input type="text" id="steam_id" name="steam_id"
+                           value="{{ settings.steam_id }}"
+                           placeholder="76561198000000000">
+                    <div class="help-text">
+                        Find your Steam ID at <a href="https://steamid.io" target="_blank">steamid.io</a>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="steam_api_key">Steam API Key</label>
+                    <input type="password" id="steam_api_key" name="steam_api_key"
+                           value="{{ settings.steam_api_key }}"
+                           placeholder="Your Steam API key">
+                    <div class="help-text">
+                        Get your API key at <a href="https://steamcommunity.com/dev/apikey" target="_blank">steamcommunity.com/dev/apikey</a>
+                    </div>
+                </div>
+            </div>
+
+            <!-- IGDB Section -->
+            <div class="section">
+                <div class="section-header">
+                    <div class="section-icon igdb">I</div>
+                    <div>
+                        <div class="section-title">IGDB</div>
+                        <div class="section-description">Fetch game ratings and metadata</div>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="igdb_client_id">IGDB Client ID</label>
+                    <input type="text" id="igdb_client_id" name="igdb_client_id"
+                           value="{{ settings.igdb_client_id }}"
+                           placeholder="Your Twitch/IGDB Client ID">
+                    <div class="help-text">
+                        Register at <a href="https://dev.twitch.tv/console/apps" target="_blank">dev.twitch.tv/console/apps</a>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="igdb_client_secret">IGDB Client Secret</label>
+                    <input type="password" id="igdb_client_secret" name="igdb_client_secret"
+                           value="{{ settings.igdb_client_secret }}"
+                           placeholder="Your Twitch/IGDB Client Secret">
+                </div>
+            </div>
+
+            <!-- itch.io Section -->
+            <div class="section">
+                <div class="section-header">
+                    <div class="section-icon itch">i</div>
+                    <div>
+                        <div class="section-title">itch.io</div>
+                        <div class="section-description">Connect to your itch.io library</div>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="itch_api_key">itch.io API Key</label>
+                    <input type="password" id="itch_api_key" name="itch_api_key"
+                           value="{{ settings.itch_api_key }}"
+                           placeholder="Your itch.io API key">
+                    <div class="help-text">
+                        Get your API key at <a href="https://itch.io/user/settings/api-keys" target="_blank">itch.io/user/settings/api-keys</a>
+                    </div>
+                </div>
+            </div>
+
+            <div class="button-group">
+                <button type="submit" class="btn btn-primary">Save Settings</button>
+                <a href="/" class="btn btn-secondary">Cancel</a>
+            </div>
+        </form>
+    </div>
+</body>
+</html>

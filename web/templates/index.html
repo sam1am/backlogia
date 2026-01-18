@@ -1,0 +1,538 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Game Library</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            min-height: 100vh;
+            color: #e4e4e4;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        header {
+            text-align: center;
+            padding: 40px 0;
+            position: relative;
+        }
+
+        header h1 {
+            font-size: 2.5rem;
+            background: linear-gradient(90deg, #667eea, #764ba2);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .settings-dropdown {
+            position: absolute;
+            top: 20px;
+            right: 0;
+        }
+
+        .settings-btn {
+            background: rgba(255, 255, 255, 0.1);
+            border: none;
+            border-radius: 10px;
+            padding: 10px 14px;
+            color: #e4e4e4;
+            cursor: pointer;
+            font-size: 1.2rem;
+            transition: background 0.2s;
+        }
+
+        .settings-btn:hover {
+            background: rgba(255, 255, 255, 0.2);
+        }
+
+        .settings-menu {
+            display: none;
+            position: absolute;
+            top: 100%;
+            right: 0;
+            margin-top: 8px;
+            background: #1e1e3f;
+            border-radius: 12px;
+            padding: 15px;
+            min-width: 200px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.4);
+            z-index: 100;
+        }
+
+        .settings-menu.active {
+            display: block;
+        }
+
+        .settings-menu h3 {
+            font-size: 0.8rem;
+            color: #888;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 10px;
+        }
+
+        .size-options {
+            display: flex;
+            gap: 8px;
+        }
+
+        .size-btn {
+            flex: 1;
+            padding: 8px 12px;
+            border: none;
+            border-radius: 8px;
+            background: rgba(255, 255, 255, 0.1);
+            color: #e4e4e4;
+            cursor: pointer;
+            font-size: 0.85rem;
+            transition: all 0.2s;
+        }
+
+        .size-btn:hover {
+            background: rgba(255, 255, 255, 0.2);
+        }
+
+        .size-btn.active {
+            background: linear-gradient(90deg, #667eea, #764ba2);
+            color: white;
+        }
+
+        .settings-link {
+            display: block;
+            margin-top: 15px;
+            padding-top: 15px;
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+            color: #667eea;
+            text-decoration: none;
+            font-size: 0.85rem;
+        }
+
+        .settings-link:hover {
+            text-decoration: underline;
+        }
+
+        .stats {
+            display: flex;
+            justify-content: center;
+            gap: 30px;
+            margin-top: 20px;
+        }
+
+        .stat {
+            text-align: center;
+        }
+
+        .stat-value {
+            font-size: 2rem;
+            font-weight: bold;
+            color: #667eea;
+        }
+
+        .stat-label {
+            font-size: 0.9rem;
+            color: #888;
+        }
+
+        .filters {
+            background: rgba(255, 255, 255, 0.05);
+            padding: 20px;
+            border-radius: 12px;
+            margin-bottom: 30px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+            align-items: center;
+        }
+
+        .filter-group {
+            display: flex;
+            gap: 10px;
+        }
+
+        .filter-btn {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 20px;
+            cursor: pointer;
+            background: rgba(255, 255, 255, 0.1);
+            color: #e4e4e4;
+            transition: all 0.2s;
+            text-decoration: none;
+            font-size: 0.9rem;
+        }
+
+        .filter-btn:hover {
+            background: rgba(255, 255, 255, 0.2);
+        }
+
+        .filter-btn.active {
+            background: linear-gradient(90deg, #667eea, #764ba2);
+            color: white;
+        }
+
+        .filter-btn.steam { border-left: 3px solid #1b2838; }
+        .filter-btn.epic { border-left: 3px solid #0078f2; }
+        .filter-btn.gog { border-left: 3px solid #86328a; }
+        .filter-btn.itch { border-left: 3px solid #fa5c5c; }
+
+        .search-box {
+            flex: 1;
+            min-width: 200px;
+        }
+
+        .search-box input {
+            width: 100%;
+            padding: 10px 16px;
+            border: none;
+            border-radius: 20px;
+            background: rgba(255, 255, 255, 0.1);
+            color: #e4e4e4;
+            font-size: 1rem;
+        }
+
+        .search-box input::placeholder {
+            color: #888;
+        }
+
+        .search-box input:focus {
+            outline: none;
+            background: rgba(255, 255, 255, 0.15);
+        }
+
+        .sort-select {
+            padding: 10px 16px;
+            border: none;
+            border-radius: 20px;
+            background: rgba(255, 255, 255, 0.1);
+            color: #e4e4e4;
+            font-size: 0.9rem;
+            cursor: pointer;
+        }
+
+        .games-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 20px;
+        }
+
+        /* Small box art */
+        .games-grid.size-small {
+            grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+            gap: 15px;
+        }
+
+        .games-grid.size-small .game-info {
+            padding: 10px;
+        }
+
+        .games-grid.size-small .game-title {
+            font-size: 0.8rem;
+        }
+
+        .games-grid.size-small .game-cover-placeholder {
+            font-size: 2rem;
+        }
+
+        /* Medium box art (default) */
+        .games-grid.size-medium {
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 20px;
+        }
+
+        /* Large box art */
+        .games-grid.size-large {
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 25px;
+        }
+
+        .games-grid.size-large .game-info {
+            padding: 18px;
+        }
+
+        .games-grid.size-large .game-title {
+            font-size: 1.1rem;
+        }
+
+        .games-grid.size-large .game-cover-placeholder {
+            font-size: 4rem;
+        }
+
+        .game-card {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 12px;
+            overflow: hidden;
+            transition: transform 0.2s, box-shadow 0.2s;
+            cursor: pointer;
+            text-decoration: none;
+            color: inherit;
+        }
+
+        .game-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+        }
+
+        .game-cover {
+            width: 100%;
+            aspect-ratio: 2/3;
+            object-fit: cover;
+            background: linear-gradient(135deg, #2a2a4a 0%, #1a1a3e 100%);
+        }
+
+        .game-cover-placeholder {
+            width: 100%;
+            aspect-ratio: 2/3;
+            background: linear-gradient(135deg, #2a2a4a 0%, #1a1a3e 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 3rem;
+            color: #444;
+        }
+
+        .game-info {
+            padding: 15px;
+        }
+
+        .game-title {
+            font-size: 0.95rem;
+            font-weight: 600;
+            margin-bottom: 8px;
+            line-height: 1.3;
+            height: 2.6em;
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+        }
+
+        .game-meta {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 0.8rem;
+        }
+
+        .store-icon {
+            width: 25px;
+            height: 25px;
+            object-fit: contain;
+        }
+
+        .playtime {
+            color: #888;
+        }
+
+        .ratings-bar {
+            display: flex;
+            border-radius: 4px;
+            overflow: hidden;
+            font-size: 0.65rem;
+            font-weight: bold;
+            height: 20px;
+        }
+
+        .ratings-bar .rating {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 0 5px;
+            min-width: 24px;
+            color: white;
+        }
+
+        .ratings-bar .rating.total {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+        }
+
+        .ratings-bar .rating.user {
+            background: linear-gradient(135deg, #2196f3, #1565c0);
+        }
+
+        .ratings-bar .rating.critic {
+            background: linear-gradient(135deg, #4caf50, #2e7d32);
+        }
+
+        .game-stats {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+        }
+
+        .no-games {
+            text-align: center;
+            padding: 60px;
+            color: #888;
+        }
+
+        .no-games h2 {
+            margin-bottom: 10px;
+        }
+
+        @media (max-width: 768px) {
+            .games-grid {
+                grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+                gap: 15px;
+            }
+
+            .filters {
+                flex-direction: column;
+            }
+
+            .filter-group {
+                flex-wrap: wrap;
+                justify-content: center;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <div class="settings-dropdown">
+                <button class="settings-btn" onclick="toggleSettings()" title="Settings">&#9881;</button>
+                <div id="settings-menu" class="settings-menu">
+                    <h3>Box Art Size</h3>
+                    <div class="size-options">
+                        <button class="size-btn" data-size="small" onclick="setGridSize('small')">S</button>
+                        <button class="size-btn active" data-size="medium" onclick="setGridSize('medium')">M</button>
+                        <button class="size-btn" data-size="large" onclick="setGridSize('large')">L</button>
+                    </div>
+                    {% if hidden_count %}
+                    <a href="/hidden" class="settings-link">Hidden Games ({{ hidden_count }}) &rarr;</a>
+                    {% endif %}
+                    <a href="/settings" class="settings-link">API Settings &rarr;</a>
+                </div>
+            </div>
+            <h1>Game Library</h1>
+            <div class="stats">
+                <div class="stat">
+                    <div class="stat-value">{{ total_count }}</div>
+                    <div class="stat-label">Total Games</div>
+                </div>
+                {% for store, count in store_counts.items() %}
+                <div class="stat">
+                    <div class="stat-value">{{ count }}</div>
+                    <div class="stat-label">{{ store|capitalize }}</div>
+                </div>
+                {% endfor %}
+            </div>
+        </header>
+
+        <div class="filters">
+            <div class="filter-group">
+                <a href="?" class="filter-btn {% if not current_store %}active{% endif %}">All</a>
+                {% for store, count in store_counts.items() %}
+                <a href="?store={{ store }}{% if current_search %}&search={{ current_search }}{% endif %}"
+                   class="filter-btn {{ store }} {% if current_store == store %}active{% endif %}">
+                    {{ store|capitalize }} ({{ count }})
+                </a>
+                {% endfor %}
+            </div>
+
+            <div class="search-box">
+                <form action="" method="get">
+                    {% if current_store %}<input type="hidden" name="store" value="{{ current_store }}">{% endif %}
+                    <input type="text" name="search" placeholder="Search games..." value="{{ current_search }}">
+                </form>
+            </div>
+
+            <select class="sort-select" onchange="window.location.href=this.value">
+                <option value="?{% if current_store %}store={{ current_store }}&{% endif %}{% if current_search %}search={{ current_search }}&{% endif %}sort=name&order=asc" {% if current_sort == 'name' and current_order == 'asc' %}selected{% endif %}>Name (A-Z)</option>
+                <option value="?{% if current_store %}store={{ current_store }}&{% endif %}{% if current_search %}search={{ current_search }}&{% endif %}sort=name&order=desc" {% if current_sort == 'name' and current_order == 'desc' %}selected{% endif %}>Name (Z-A)</option>
+                <option value="?{% if current_store %}store={{ current_store }}&{% endif %}{% if current_search %}search={{ current_search }}&{% endif %}sort=total_rating&order=desc" {% if current_sort == 'total_rating' %}selected{% endif %}>IGDB Rating (High-Low)</option>
+                <option value="?{% if current_store %}store={{ current_store }}&{% endif %}{% if current_search %}search={{ current_search }}&{% endif %}sort=igdb_rating&order=desc" {% if current_sort == 'igdb_rating' %}selected{% endif %}>User Rating (High-Low)</option>
+                <option value="?{% if current_store %}store={{ current_store }}&{% endif %}{% if current_search %}search={{ current_search }}&{% endif %}sort=aggregated_rating&order=desc" {% if current_sort == 'aggregated_rating' %}selected{% endif %}>Critic Rating (High-Low)</option>
+                <option value="?{% if current_store %}store={{ current_store }}&{% endif %}{% if current_search %}search={{ current_search }}&{% endif %}sort=playtime_hours&order=desc" {% if current_sort == 'playtime_hours' %}selected{% endif %}>Most Played</option>
+            </select>
+        </div>
+
+        {% if games %}
+        {% set store_icons = {'steam': 'steam-24.png', 'epic': 'epic-64.png', 'gog': 'gog-48.png', 'itch': 'itch-64.png'} %}
+        <div id="games-grid" class="games-grid size-medium">
+            {% for game in games %}
+            <a href="/game/{{ game.id }}" class="game-card">
+                {% set cover_url = game.igdb_cover_url or game.cover_image %}
+                {% if cover_url %}
+                <img src="{{ cover_url }}" alt="{{ game.name }}" class="game-cover" loading="lazy"
+                     onerror="this.style.display='none';this.nextElementSibling.style.display='flex';">
+                <div class="game-cover-placeholder" style="display:none;">🎮</div>
+                {% else %}
+                <div class="game-cover-placeholder">🎮</div>
+                {% endif %}
+                <div class="game-info">
+                    <div class="game-title">{{ game.name or 'Unknown Game' }}</div>
+                    <div class="game-meta">
+                        <img src="/static/images/{{ store_icons.get(game.store, 'steam-26.png') }}" alt="{{ game.store }}" class="store-icon" title="{{ game.store|capitalize }}">
+                        {% if game.total_rating or game.igdb_rating or game.aggregated_rating %}
+                        <div class="ratings-bar" title="Total | User | Critic">
+                            {% if game.total_rating %}<span class="rating total">{{ game.total_rating|round|int }}</span>{% endif %}
+                            {% if game.igdb_rating %}<span class="rating user">{{ game.igdb_rating|round|int }}</span>{% endif %}
+                            {% if game.aggregated_rating %}<span class="rating critic">{{ game.aggregated_rating|round|int }}</span>{% endif %}
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </a>
+            {% endfor %}
+        </div>
+        {% else %}
+        <div class="no-games">
+            <h2>No games found</h2>
+            <p>Try adjusting your filters or run the database import script.</p>
+        </div>
+        {% endif %}
+    </div>
+
+    <script>
+        function toggleSettings() {
+            document.getElementById('settings-menu').classList.toggle('active');
+        }
+
+        function setGridSize(size) {
+            const grid = document.getElementById('games-grid');
+            grid.classList.remove('size-small', 'size-medium', 'size-large');
+            grid.classList.add('size-' + size);
+
+            // Update active button
+            document.querySelectorAll('.size-btn').forEach(btn => {
+                btn.classList.remove('active');
+                if (btn.dataset.size === size) {
+                    btn.classList.add('active');
+                }
+            });
+
+            // Save preference
+            localStorage.setItem('gridSize', size);
+        }
+
+        // Load saved preference on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            const savedSize = localStorage.getItem('gridSize') || 'medium';
+            setGridSize(savedSize);
+        });
+
+        // Close settings when clicking outside
+        document.addEventListener('click', function(e) {
+            const dropdown = document.querySelector('.settings-dropdown');
+            if (!dropdown.contains(e.target)) {
+                document.getElementById('settings-menu').classList.remove('active');
+            }
+        });
+    </script>
+</body>
+</html>

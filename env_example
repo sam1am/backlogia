@@ -1,0 +1,26 @@
+# STEAM
+STEAM_ID=
+STEAM_API_KEY=
+
+# EPIC
+
+# GOG
+
+# WEB INTERFACE
+PORT=
+DEBUG=False
+
+# IGDB
+IGDB_CLIENT_ID=
+IGDB_CLIENT_SECRET=
+
+# ITCH.IO
+# Option 1 (Recommended): Use API key
+# Get your API key at: https://itch.io/user/settings/api-keys
+ITCH_API_KEY=
+
+# Option 2: Use OAuth (only if API key doesn't work)
+# Create OAuth app at: https://itch.io/user/settings/oauth-apps
+# Set redirect URI to: http://localhost:8976/callback
+ITCH_API_KEY=
+

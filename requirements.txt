@@ -1,0 +1,14 @@
+# Steam
+requests
+
+# Epic
+legendary-gl
+
+# Gog
+# (uses system SQLite)
+
+# Web interface
+flask
+
+# IGDB integration
+python-dotenv

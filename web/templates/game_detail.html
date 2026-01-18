@@ -1,0 +1,1040 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ game.name }} - Game Library</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            min-height: 100vh;
+            color: #e4e4e4;
+        }
+
+        .hero {
+            position: relative;
+            height: 400px;
+            overflow: hidden;
+        }
+
+        .hero-bg {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            filter: blur(20px) brightness(0.4);
+            transform: scale(1.1);
+        }
+
+        .hero-content {
+            position: relative;
+            z-index: 1;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 40px 20px;
+            display: flex;
+            gap: 40px;
+            height: 100%;
+            align-items: flex-end;
+        }
+
+        .hero-cover {
+            width: 200px;
+            height: 300px;
+            object-fit: cover;
+            border-radius: 12px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
+            flex-shrink: 0;
+        }
+
+        .hero-cover-placeholder {
+            width: 200px;
+            height: 300px;
+            background: linear-gradient(135deg, #2a2a4a 0%, #1a1a3e 100%);
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 4rem;
+            color: #444;
+            flex-shrink: 0;
+        }
+
+        .hero-info {
+            padding-bottom: 20px;
+        }
+
+        .hero-info h1 {
+            font-size: 2.5rem;
+            margin-bottom: 15px;
+            text-shadow: 0 2px 10px rgba(0, 0, 0, 0.5);
+        }
+
+        .hero-meta {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+            align-items: center;
+        }
+
+        .store-badge {
+            padding: 6px 14px;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+
+        .store-badge.steam {
+            background: #1b2838;
+            color: #66c0f4;
+        }
+
+        .store-badge.epic {
+            background: #0078f2;
+            color: white;
+        }
+
+        .store-badge.gog {
+            background: #86328a;
+            color: white;
+        }
+
+        .store-badge.itch {
+            background: #fa5c5c;
+            color: white;
+        }
+
+        .meta-item {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            color: #aaa;
+            font-size: 0.9rem;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 40px 20px;
+        }
+
+        .back-link {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            color: #667eea;
+            text-decoration: none;
+            margin-bottom: 30px;
+            font-size: 0.95rem;
+        }
+
+        .back-link:hover {
+            text-decoration: underline;
+        }
+
+        .content-grid {
+            display: grid;
+            grid-template-columns: 2fr 1fr;
+            gap: 40px;
+        }
+
+        .section {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 12px;
+            padding: 25px;
+            margin-bottom: 25px;
+        }
+
+        .section h2 {
+            font-size: 1.2rem;
+            margin-bottom: 15px;
+            color: #667eea;
+        }
+
+        .description {
+            line-height: 1.7;
+            color: #ccc;
+        }
+
+        .description img {
+            max-width: 100%;
+            height: auto;
+            border-radius: 8px;
+            margin: 10px 0;
+        }
+
+        .description a {
+            color: #667eea;
+        }
+
+        .description b, .description strong {
+            color: #e4e4e4;
+        }
+
+        .description hr {
+            border: none;
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+            margin: 20px 0;
+        }
+
+        .description video {
+            max-width: 100%;
+            border-radius: 8px;
+        }
+
+        /* Hide GOG promo banners */
+        .description [id^="test"] {
+            display: none !important;
+        }
+
+        .tags {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+
+        .tag {
+            padding: 5px 12px;
+            background: rgba(102, 126, 234, 0.2);
+            border-radius: 15px;
+            font-size: 0.85rem;
+            color: #667eea;
+        }
+
+        .info-list {
+            list-style: none;
+        }
+
+        .info-list li {
+            padding: 12px 0;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .info-list li:last-child {
+            border-bottom: none;
+        }
+
+        .info-label {
+            color: #888;
+        }
+
+        .info-value {
+            color: #e4e4e4;
+            text-align: right;
+        }
+
+        .score-badge {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            font-size: 1.1rem;
+            font-weight: bold;
+        }
+
+        .score-badge.good {
+            background: linear-gradient(135deg, #4caf50, #2e7d32);
+        }
+
+        .score-badge.mixed {
+            background: linear-gradient(135deg, #ff9800, #f57c00);
+        }
+
+        .score-badge.bad {
+            background: linear-gradient(135deg, #f44336, #c62828);
+        }
+
+        .ratings-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 15px;
+            text-align: center;
+        }
+
+        .rating-item {
+            padding: 15px 10px;
+            background: rgba(255, 255, 255, 0.03);
+            border-radius: 8px;
+        }
+
+        .rating-item .score {
+            font-size: 1.8rem;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+
+        .rating-item.total { background: linear-gradient(135deg, rgba(102, 126, 234, 0.15), rgba(118, 75, 162, 0.15)); }
+        .rating-item.total .score { color: #667eea; }
+
+        .rating-item.user { background: linear-gradient(135deg, rgba(33, 150, 243, 0.15), rgba(21, 101, 192, 0.15)); }
+        .rating-item.user .score { color: #2196f3; }
+
+        .rating-item.critic { background: linear-gradient(135deg, rgba(76, 175, 80, 0.15), rgba(46, 125, 50, 0.15)); }
+        .rating-item.critic .score { color: #4caf50; }
+
+        .rating-item .score.none { color: #666; }
+
+        .rating-item .label {
+            font-size: 0.75rem;
+            color: #888;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .rating-item .count {
+            font-size: 0.7rem;
+            color: #666;
+            margin-top: 3px;
+        }
+
+        .platforms {
+            display: flex;
+            gap: 10px;
+        }
+
+        .platform {
+            padding: 5px 10px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 5px;
+            font-size: 0.8rem;
+        }
+
+        .screenshots-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 15px;
+        }
+
+        .screenshot {
+            width: 100%;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        .screenshot:hover {
+            transform: scale(1.02);
+            box-shadow: 0 5px 20px rgba(0, 0, 0, 0.4);
+        }
+
+        .lightbox {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.95);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+            cursor: pointer;
+        }
+
+        .lightbox.active {
+            display: flex;
+        }
+
+        .lightbox img {
+            max-width: 95%;
+            max-height: 95%;
+            border-radius: 8px;
+        }
+
+        .lightbox-close {
+            position: absolute;
+            top: 20px;
+            right: 30px;
+            font-size: 2rem;
+            color: white;
+            cursor: pointer;
+        }
+
+        /* IGDB Settings Section */
+        .igdb-settings {
+            margin-top: 15px;
+        }
+
+        .igdb-input-group {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 10px;
+        }
+
+        .igdb-input {
+            flex: 1;
+            padding: 10px 12px;
+            background: rgba(0, 0, 0, 0.3);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 6px;
+            color: #e4e4e4;
+            font-size: 0.9rem;
+        }
+
+        .igdb-input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .igdb-input::placeholder {
+            color: #666;
+        }
+
+        .igdb-btn {
+            padding: 10px 16px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border: none;
+            border-radius: 6px;
+            color: white;
+            font-size: 0.85rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: opacity 0.2s, transform 0.1s;
+        }
+
+        .igdb-btn:hover {
+            opacity: 0.9;
+        }
+
+        .igdb-btn:active {
+            transform: scale(0.98);
+        }
+
+        .igdb-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .igdb-btn.clear {
+            background: rgba(244, 67, 54, 0.2);
+            color: #f44336;
+        }
+
+        .igdb-btn.clear:hover {
+            background: rgba(244, 67, 54, 0.3);
+        }
+
+        .igdb-status {
+            font-size: 0.85rem;
+            padding: 8px 12px;
+            border-radius: 6px;
+            margin-top: 10px;
+        }
+
+        .igdb-status.success {
+            background: rgba(76, 175, 80, 0.2);
+            color: #4caf50;
+        }
+
+        .igdb-status.error {
+            background: rgba(244, 67, 54, 0.2);
+            color: #f44336;
+        }
+
+        .igdb-status.loading {
+            background: rgba(102, 126, 234, 0.2);
+            color: #667eea;
+        }
+
+        .igdb-current {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 0.85rem;
+            color: #888;
+            margin-bottom: 12px;
+        }
+
+        .igdb-current a {
+            color: #667eea;
+            text-decoration: none;
+        }
+
+        .igdb-current a:hover {
+            text-decoration: underline;
+        }
+
+        .igdb-help {
+            font-size: 0.75rem;
+            color: #666;
+            margin-top: 8px;
+        }
+
+        .igdb-help a {
+            color: #667eea;
+        }
+
+        /* Collapsible Settings Panel */
+        .settings-panel {
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            overflow: hidden;
+        }
+
+        .settings-toggle {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            width: 100%;
+            padding: 15px 20px;
+            background: rgba(255, 255, 255, 0.03);
+            border: none;
+            color: #667eea;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .settings-toggle:hover {
+            background: rgba(255, 255, 255, 0.05);
+        }
+
+        .settings-toggle-icon {
+            transition: transform 0.3s;
+        }
+
+        .settings-toggle.expanded .settings-toggle-icon {
+            transform: rotate(180deg);
+        }
+
+        .settings-content {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.3s ease-out;
+        }
+
+        .settings-content.expanded {
+            max-height: 600px;
+        }
+
+        .settings-inner {
+            padding: 20px;
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .settings-section {
+            margin-bottom: 20px;
+        }
+
+        .settings-section:last-child {
+            margin-bottom: 0;
+        }
+
+        .settings-section h3 {
+            font-size: 0.9rem;
+            color: #888;
+            margin-bottom: 12px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        /* Hide Game Toggle */
+        .hide-toggle {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 12px 15px;
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 8px;
+        }
+
+        .hide-toggle-label {
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+        }
+
+        .hide-toggle-label span {
+            font-size: 0.9rem;
+            color: #e4e4e4;
+        }
+
+        .hide-toggle-label small {
+            font-size: 0.75rem;
+            color: #666;
+        }
+
+        .toggle-switch {
+            position: relative;
+            width: 44px;
+            height: 24px;
+        }
+
+        .toggle-switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+
+        .toggle-slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: rgba(255, 255, 255, 0.1);
+            transition: 0.3s;
+            border-radius: 24px;
+        }
+
+        .toggle-slider:before {
+            position: absolute;
+            content: "";
+            height: 18px;
+            width: 18px;
+            left: 3px;
+            bottom: 3px;
+            background-color: #888;
+            transition: 0.3s;
+            border-radius: 50%;
+        }
+
+        .toggle-switch input:checked + .toggle-slider {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+
+        .toggle-switch input:checked + .toggle-slider:before {
+            transform: translateX(20px);
+            background-color: white;
+        }
+
+        @media (max-width: 768px) {
+            .hero {
+                height: auto;
+            }
+
+            .hero-content {
+                flex-direction: column;
+                align-items: center;
+                text-align: center;
+            }
+
+            .hero-info h1 {
+                font-size: 1.8rem;
+            }
+
+            .hero-meta {
+                justify-content: center;
+            }
+
+            .content-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="hero">
+        {% if game.background_image %}
+        <img src="{{ game.background_image }}" alt="" class="hero-bg"
+             onerror="this.style.display='none';">
+        {% elif game.cover_image %}
+        <img src="{{ game.cover_image }}" alt="" class="hero-bg"
+             onerror="this.style.display='none';">
+        {% endif %}
+        <div class="hero-content">
+            {% set cover_url = game.igdb_cover_url or game.cover_image %}
+            {% if cover_url %}
+            <img src="{{ cover_url }}" alt="{{ game.name }}" class="hero-cover"
+                 onerror="this.style.display='none';this.nextElementSibling.style.display='flex';">
+            <div class="hero-cover-placeholder" style="display:none;">🎮</div>
+            {% else %}
+            <div class="hero-cover-placeholder">🎮</div>
+            {% endif %}
+            <div class="hero-info">
+                <h1>{{ game.name or 'Unknown Game' }}</h1>
+                <div class="hero-meta">
+                    <span class="store-badge {{ game.store }}">{{ game.store }}</span>
+                    {% if game.playtime_hours %}
+                    <span class="meta-item">🕐 {{ game.playtime_hours }} hours played</span>
+                    {% endif %}
+                    {% if game.critics_score %}
+                    <span class="meta-item">⭐ {{ game.critics_score|round(1) }} / 100</span>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="container">
+        <a href="/" class="back-link">← Back to Library</a>
+
+        <div class="content-grid">
+            <div class="main-content">
+                {% set summary = game.igdb_summary or game.description %}
+                {% if summary %}
+                <div class="section">
+                    <h2>About</h2>
+                    <div class="description">{{ summary|safe }}</div>
+                </div>
+                {% endif %}
+
+                {% set genres = parse_json(game.genres) %}
+                {% if genres %}
+                <div class="section">
+                    <h2>Genres</h2>
+                    <div class="tags">
+                        {% for genre in genres %}
+                        <span class="tag">{{ genre }}</span>
+                        {% endfor %}
+                    </div>
+                </div>
+                {% endif %}
+
+                {% set platforms = parse_json(game.supported_platforms) %}
+                {% if platforms %}
+                <div class="section">
+                    <h2>Platforms</h2>
+                    <div class="platforms">
+                        {% for platform in platforms %}
+                        <span class="platform">{{ platform }}</span>
+                        {% endfor %}
+                    </div>
+                </div>
+                {% endif %}
+
+                {% set screenshots = parse_json(game.igdb_screenshots) %}
+                {% if screenshots %}
+                <div class="section">
+                    <h2>Screenshots</h2>
+                    <div class="screenshots-grid">
+                        {% for url in screenshots %}
+                        <img src="{{ url }}" alt="Screenshot {{ loop.index }}" class="screenshot"
+                             onclick="openLightbox('{{ url.replace('t_screenshot_big', 't_1080p') }}')" loading="lazy">
+                        {% endfor %}
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+
+            <div class="sidebar">
+                <div class="section">
+                    <h2>Details</h2>
+                    <ul class="info-list">
+                        {% set developers = parse_json(game.developers) %}
+                        {% if developers %}
+                        <li>
+                            <span class="info-label">Developer</span>
+                            <span class="info-value">{{ developers|join(', ') }}</span>
+                        </li>
+                        {% endif %}
+
+                        {% set publishers = parse_json(game.publishers) %}
+                        {% if publishers %}
+                        <li>
+                            <span class="info-label">Publisher</span>
+                            <span class="info-value">{{ publishers|join(', ') }}</span>
+                        </li>
+                        {% endif %}
+
+                        {% if game.release_date %}
+                        <li>
+                            <span class="info-label">Release Date</span>
+                            <span class="info-value">{{ game.release_date[:10] if game.release_date else 'Unknown' }}</span>
+                        </li>
+                        {% endif %}
+
+                        <li>
+                            <span class="info-label">Store ID</span>
+                            <span class="info-value">{{ game.store_id or 'N/A' }}</span>
+                        </li>
+
+                        {% if game.can_run_offline is not none %}
+                        <li>
+                            <span class="info-label">Offline Play</span>
+                            <span class="info-value">{{ 'Yes' if game.can_run_offline else 'No' }}</span>
+                        </li>
+                        {% endif %}
+                    </ul>
+                </div>
+
+                {% if game.total_rating or game.igdb_rating or game.aggregated_rating %}
+                <div class="section">
+                    <h2>IGDB Ratings</h2>
+                    <div class="ratings-grid">
+                        <div class="rating-item total">
+                            {% if game.total_rating %}
+                            <div class="score">{{ game.total_rating|round|int }}</div>
+                            {% else %}
+                            <div class="score none">--</div>
+                            {% endif %}
+                            <div class="label">Total</div>
+                            {% if game.total_rating_count %}
+                            <div class="count">{{ game.total_rating_count }} total</div>
+                            {% endif %}
+                        </div>
+                        <div class="rating-item user">
+                            {% if game.igdb_rating %}
+                            <div class="score">{{ game.igdb_rating|round|int }}</div>
+                            {% else %}
+                            <div class="score none">--</div>
+                            {% endif %}
+                            <div class="label">User</div>
+                            {% if game.igdb_rating_count %}
+                            <div class="count">{{ game.igdb_rating_count }} votes</div>
+                            {% endif %}
+                        </div>
+                        <div class="rating-item critic">
+                            {% if game.aggregated_rating %}
+                            <div class="score">{{ game.aggregated_rating|round|int }}</div>
+                            {% else %}
+                            <div class="score none">--</div>
+                            {% endif %}
+                            <div class="label">Critic</div>
+                            {% if game.aggregated_rating_count %}
+                            <div class="count">{{ game.aggregated_rating_count }} reviews</div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+                {% endif %}
+
+                <div class="settings-panel">
+                    <button type="button" class="settings-toggle" onclick="toggleSettings()">
+                        <span>Settings</span>
+                        <span class="settings-toggle-icon">▼</span>
+                    </button>
+                    <div id="settings-content" class="settings-content">
+                        <div class="settings-inner">
+                            <div class="settings-section">
+                                <h3>Visibility</h3>
+                                <div class="hide-toggle">
+                                    <div class="hide-toggle-label">
+                                        <span>Hide from library</span>
+                                        <small>Hidden games won't appear in the main listing</small>
+                                    </div>
+                                    <label class="toggle-switch">
+                                        <input type="checkbox" id="hide-toggle" {% if game.hidden %}checked{% endif %} onchange="toggleHidden()">
+                                        <span class="toggle-slider"></span>
+                                    </label>
+                                </div>
+                                <div class="hide-toggle" style="margin-top: 12px;">
+                                    <div class="hide-toggle-label">
+                                        <span>NSFW content</span>
+                                        <small>Mark as adult/mature content</small>
+                                    </div>
+                                    <label class="toggle-switch">
+                                        <input type="checkbox" id="nsfw-toggle" {% if game.nsfw %}checked{% endif %} onchange="toggleNsfw()">
+                                        <span class="toggle-slider"></span>
+                                    </label>
+                                </div>
+                            </div>
+
+                            <div class="settings-section">
+                                <h3>IGDB Data</h3>
+                                <div class="igdb-settings">
+                                    {% if game.igdb_id %}
+                                    <div class="igdb-current">
+                                        <span>Current ID:</span>
+                                        <a href="https://www.igdb.com/games/{{ game.igdb_slug or game.igdb_id }}" target="_blank" rel="noopener">{{ game.igdb_id }}</a>
+                                    </div>
+                                    {% endif %}
+                                    <div class="igdb-input-group">
+                                        <input type="number" id="igdb-id-input" class="igdb-input"
+                                               placeholder="Enter IGDB ID"
+                                               value="{{ game.igdb_id or '' }}">
+                                        <button type="button" class="igdb-btn" onclick="syncIgdb()">Sync</button>
+                                    </div>
+                                    {% if game.igdb_id %}
+                                    <button type="button" class="igdb-btn clear" onclick="clearIgdb()">Clear IGDB Data</button>
+                                    {% endif %}
+                                    <div id="igdb-status" class="igdb-status" style="display: none;"></div>
+                                    <p class="igdb-help">
+                                        Find the IGDB ID by searching on <a href="https://www.igdb.com/search?utf8=%E2%9C%93&type=1&q={{ game.name|urlencode }}" target="_blank" rel="noopener">igdb.com</a>.
+                                        The ID is in the URL (e.g., igdb.com/games/<strong>slug</strong>/123 → ID is 123).
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Lightbox for screenshots -->
+    <div id="lightbox" class="lightbox" onclick="closeLightbox()">
+        <span class="lightbox-close">&times;</span>
+        <img id="lightbox-img" src="" alt="Screenshot">
+    </div>
+
+    <script>
+        function openLightbox(url) {
+            document.getElementById('lightbox-img').src = url;
+            document.getElementById('lightbox').classList.add('active');
+            document.body.style.overflow = 'hidden';
+        }
+
+        function closeLightbox() {
+            document.getElementById('lightbox').classList.remove('active');
+            document.body.style.overflow = '';
+        }
+
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape') closeLightbox();
+        });
+
+        // IGDB Sync Functions
+        const gameId = {{ game.id }};
+
+        function showStatus(message, type) {
+            const statusEl = document.getElementById('igdb-status');
+            statusEl.textContent = message;
+            statusEl.className = 'igdb-status ' + type;
+            statusEl.style.display = 'block';
+        }
+
+        function syncIgdb() {
+            const input = document.getElementById('igdb-id-input');
+            const igdbId = input.value.trim();
+
+            if (!igdbId) {
+                showStatus('Please enter an IGDB ID', 'error');
+                return;
+            }
+
+            const btn = event.target;
+            btn.disabled = true;
+            btn.textContent = 'Syncing...';
+            showStatus('Fetching data from IGDB...', 'loading');
+
+            fetch(`/api/game/${gameId}/igdb`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ igdb_id: igdbId })
+            })
+            .then(response => response.json())
+            .then(data => {
+                btn.disabled = false;
+                btn.textContent = 'Sync';
+
+                if (data.success) {
+                    showStatus(data.message, 'success');
+                    // Reload page after a short delay to show updated data
+                    setTimeout(() => location.reload(), 1500);
+                } else {
+                    showStatus(data.error || 'Failed to sync', 'error');
+                }
+            })
+            .catch(error => {
+                btn.disabled = false;
+                btn.textContent = 'Sync';
+                showStatus('Network error: ' + error.message, 'error');
+            });
+        }
+
+        function clearIgdb() {
+            if (!confirm('Are you sure you want to clear all IGDB data for this game?')) {
+                return;
+            }
+
+            showStatus('Clearing IGDB data...', 'loading');
+
+            fetch(`/api/game/${gameId}/igdb`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ igdb_id: '' })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    showStatus(data.message, 'success');
+                    setTimeout(() => location.reload(), 1500);
+                } else {
+                    showStatus(data.error || 'Failed to clear data', 'error');
+                }
+            })
+            .catch(error => {
+                showStatus('Network error: ' + error.message, 'error');
+            });
+        }
+
+        // Allow Enter key to trigger sync
+        document.getElementById('igdb-id-input').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                syncIgdb();
+            }
+        });
+
+        // Settings Panel Toggle
+        function toggleSettings() {
+            const toggle = document.querySelector('.settings-toggle');
+            const content = document.getElementById('settings-content');
+            toggle.classList.toggle('expanded');
+            content.classList.toggle('expanded');
+        }
+
+        // Hide Game Toggle
+        function toggleHidden() {
+            const checkbox = document.getElementById('hide-toggle');
+            const hidden = checkbox.checked;
+
+            fetch(`/api/game/${gameId}/hidden`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ hidden: hidden })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (!data.success) {
+                    // Revert checkbox on error
+                    checkbox.checked = !hidden;
+                    alert(data.error || 'Failed to update visibility');
+                }
+            })
+            .catch(error => {
+                checkbox.checked = !hidden;
+                alert('Network error: ' + error.message);
+            });
+        }
+
+        // NSFW Toggle
+        function toggleNsfw() {
+            const checkbox = document.getElementById('nsfw-toggle');
+            const nsfw = checkbox.checked;
+
+            fetch(`/api/game/${gameId}/nsfw`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ nsfw: nsfw })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (!data.success) {
+                    // Revert checkbox on error
+                    checkbox.checked = !nsfw;
+                    alert(data.error || 'Failed to update NSFW status');
+                }
+            })
+            .catch(error => {
+                checkbox.checked = !nsfw;
+                alert('Network error: ' + error.message);
+            });
+        }
+    </script>
+</body>
+</html>
