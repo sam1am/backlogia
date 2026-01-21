@@ -311,6 +311,47 @@
             opacity: 0.9;
         }
 
+        /* Genre dropdown specific styles */
+        .genre-dropdown-menu {
+            max-height: 400px;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .genre-search {
+            padding: 10px 16px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .genre-search input {
+            width: 100%;
+            padding: 8px 12px;
+            border: none;
+            border-radius: 8px;
+            background: rgba(255, 255, 255, 0.1);
+            color: #e4e4e4;
+            font-size: 0.9rem;
+        }
+
+        .genre-search input::placeholder {
+            color: #888;
+        }
+
+        .genre-search input:focus {
+            outline: none;
+            background: rgba(255, 255, 255, 0.15);
+        }
+
+        .genre-options-list {
+            overflow-y: auto;
+            max-height: 280px;
+            padding: 8px 0;
+        }
+
+        .genre-option.hidden {
+            display: none;
+        }
+
         .search-box {
             flex: 1;
             min-width: 200px;
@@ -766,9 +807,48 @@
                 </div>
             </div>
 
+            {% if genre_counts %}
+            <div class="store-dropdown" id="genre-dropdown">
+                <button type="button" class="store-dropdown-btn {% if current_genres %}active{% endif %}" onclick="toggleGenreDropdown()">
+                    <span class="btn-text">
+                        {% if current_genres %}
+                            {% if current_genres|length == 1 %}
+                                {{ current_genres[0] }}
+                            {% else %}
+                                {{ current_genres|length }} Tags
+                            {% endif %}
+                        {% else %}
+                            All Tags
+                        {% endif %}
+                    </span>
+                    <span class="arrow">&#9662;</span>
+                </button>
+                <div class="store-dropdown-menu genre-dropdown-menu">
+                    <div class="genre-search">
+                        <input type="text" placeholder="Search tags..." id="genre-search-input" oninput="filterGenreOptions()">
+                    </div>
+                    <div class="genre-options-list">
+                        {% for genre, count in genre_counts.items() %}
+                        <label class="store-option genre-option">
+                            <input type="checkbox" name="genres" value="{{ genre }}" {% if genre in current_genres %}checked{% endif %}>
+                            <span class="checkbox"></span>
+                            <span class="store-label">{{ genre }}</span>
+                            <span class="store-count">{{ count }}</span>
+                        </label>
+                        {% endfor %}
+                    </div>
+                    <div class="store-dropdown-actions">
+                        <button type="button" class="clear-btn" onclick="clearGenreFilter()">Clear</button>
+                        <button type="button" class="apply-btn" onclick="applyGenreFilter()">Apply</button>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+
             <div class="search-box">
                 <form action="" method="get" id="search-form">
                     {% for store in current_stores %}<input type="hidden" name="stores" value="{{ store }}">{% endfor %}
+                    {% for genre in current_genres %}<input type="hidden" name="genres" value="{{ genre }}">{% endfor %}
                     <input type="text" name="search" placeholder="Search games..." value="{{ current_search }}">
                 </form>
             </div>
@@ -868,11 +948,15 @@
             dropdown.classList.toggle('open');
         }
 
-        // Close dropdown when clicking outside
+        // Close dropdowns when clicking outside
         document.addEventListener('click', function(event) {
-            const dropdown = document.getElementById('store-dropdown');
-            if (dropdown && !dropdown.contains(event.target)) {
-                dropdown.classList.remove('open');
+            const storeDropdown = document.getElementById('store-dropdown');
+            if (storeDropdown && !storeDropdown.contains(event.target)) {
+                storeDropdown.classList.remove('open');
+            }
+            const genreDropdown = document.getElementById('genre-dropdown');
+            if (genreDropdown && !genreDropdown.contains(event.target)) {
+                genreDropdown.classList.remove('open');
             }
         });
 
@@ -881,9 +965,15 @@
             return Array.from(checkboxes).map(cb => cb.value);
         }
 
-        function buildUrl(stores, search, sort, order) {
+        function getSelectedGenres() {
+            const checkboxes = document.querySelectorAll('#genre-dropdown input[type="checkbox"]:checked');
+            return Array.from(checkboxes).map(cb => cb.value);
+        }
+
+        function buildUrl(stores, genres, search, sort, order) {
             const params = new URLSearchParams();
             stores.forEach(store => params.append('stores', store));
+            genres.forEach(genre => params.append('genres', genre));
             if (search) params.set('search', search);
             if (sort) params.set('sort', sort);
             if (order) params.set('order', order);
@@ -892,24 +982,65 @@
 
         function applyStoreFilter() {
             const stores = getSelectedStores();
+            const genres = getSelectedGenres();
             const search = '{{ current_search }}';
             const sort = '{{ current_sort }}';
             const order = '{{ current_order }}';
-            window.location.href = buildUrl(stores, search, sort, order);
+            window.location.href = buildUrl(stores, genres, search, sort, order);
         }
 
         function clearStoreFilter() {
+            const genres = getSelectedGenres();
             const search = '{{ current_search }}';
             const sort = '{{ current_sort }}';
             const order = '{{ current_order }}';
-            window.location.href = buildUrl([], search, sort, order);
+            window.location.href = buildUrl([], genres, search, sort, order);
+        }
+
+        // Genre dropdown functionality
+        function toggleGenreDropdown() {
+            const dropdown = document.getElementById('genre-dropdown');
+            dropdown.classList.toggle('open');
+        }
+
+        function applyGenreFilter() {
+            const stores = getSelectedStores();
+            const genres = getSelectedGenres();
+            const search = '{{ current_search }}';
+            const sort = '{{ current_sort }}';
+            const order = '{{ current_order }}';
+            window.location.href = buildUrl(stores, genres, search, sort, order);
+        }
+
+        function clearGenreFilter() {
+            const stores = getSelectedStores();
+            const search = '{{ current_search }}';
+            const sort = '{{ current_sort }}';
+            const order = '{{ current_order }}';
+            window.location.href = buildUrl(stores, [], search, sort, order);
+        }
+
+        function filterGenreOptions() {
+            const searchInput = document.getElementById('genre-search-input');
+            const searchTerm = searchInput.value.toLowerCase();
+            const options = document.querySelectorAll('.genre-option');
+
+            options.forEach(option => {
+                const label = option.querySelector('.store-label').textContent.toLowerCase();
+                if (label.includes(searchTerm)) {
+                    option.classList.remove('hidden');
+                } else {
+                    option.classList.add('hidden');
+                }
+            });
         }
 
         function applySort(value) {
             const [sort, order] = value.split('-');
             const stores = [{% for store in current_stores %}'{{ store }}'{% if not loop.last %}, {% endif %}{% endfor %}];
+            const genres = [{% for genre in current_genres %}'{{ genre }}'{% if not loop.last %}, {% endif %}{% endfor %}];
             const search = '{{ current_search }}';
-            window.location.href = buildUrl(stores, search, sort, order);
+            window.location.href = buildUrl(stores, genres, search, sort, order);
         }
 
         // Multi-select functionality

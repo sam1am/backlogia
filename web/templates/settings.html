@@ -333,6 +333,121 @@
             color: #667eea;
         }
 
+        /* Auth Status */
+        .auth-status {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 12px 16px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 8px;
+        }
+
+        .status-indicator {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            flex-shrink: 0;
+        }
+
+        .status-indicator.checking {
+            background: #ffa500;
+            animation: pulse 1.5s infinite;
+        }
+
+        .status-indicator.authenticated {
+            background: #4caf50;
+        }
+
+        .status-indicator.not-authenticated {
+            background: #f44336;
+        }
+
+        .status-indicator.not-installed {
+            background: #888;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        .status-text {
+            color: #e4e4e4;
+            font-size: 0.9rem;
+        }
+
+        /* Epic Auth Steps */
+        .epic-auth-steps {
+            margin-top: 12px;
+        }
+
+        .step-item {
+            display: flex;
+            align-items: flex-start;
+            gap: 12px;
+            margin-bottom: 10px;
+        }
+
+        .step-number {
+            width: 24px;
+            height: 24px;
+            background: rgba(102, 126, 234, 0.3);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.8rem;
+            font-weight: bold;
+            color: #667eea;
+            flex-shrink: 0;
+        }
+
+        .step-text {
+            color: #ccc;
+            font-size: 0.9rem;
+            line-height: 1.5;
+        }
+
+        .step-text code {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-family: monospace;
+        }
+
+        .auth-code-input {
+            display: flex;
+            gap: 10px;
+            margin-top: 12px;
+        }
+
+        .auth-code-input input {
+            flex: 1;
+            padding: 12px 16px;
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
+            color: #e4e4e4;
+            font-size: 0.9rem;
+        }
+
+        .auth-code-input input:focus {
+            outline: none;
+            background: rgba(255, 255, 255, 0.15);
+            box-shadow: 0 0 0 2px rgba(102, 126, 234, 0.3);
+        }
+
+        .error-text {
+            color: #f44336;
+            font-size: 0.85rem;
+        }
+
+        .success-text {
+            color: #4caf50;
+            font-size: 0.85rem;
+        }
+
         /* Box Art Size */
         .size-options {
             display: flex;
@@ -815,20 +930,67 @@
                     <div class="collapsible-content">
                         <div class="collapsible-content-inner">
                             <div class="form-group">
+                                <label>Authentication Status</label>
+                                <div id="epic-auth-status" class="auth-status">
+                                    <span class="status-indicator checking"></span>
+                                    <span class="status-text">Checking...</span>
+                                </div>
+                            </div>
+
+                            <div class="form-group">
                                 <label>Legendary CLI Setup</label>
                                 <div class="help-text">
                                     Epic Games sync uses <a href="https://github.com/derrod/legendary" target="_blank">Legendary</a>, an open-source Epic Games Launcher replacement.
                                 </div>
-                                <div class="instructions-box">
-                                    <ol>
-                                        <li>Install Legendary: <code>pip install legendary-gl</code> or <code>brew install legendary</code></li>
-                                        <li>Run <code>legendary auth</code> in your terminal to log in to your Epic account</li>
-                                        <li>Once authenticated, click "Sync Epic" above to import your library</li>
-                                    </ol>
+                                <div class="help-text" style="margin-top: 8px;">
+                                    Install: <code>pip install legendary-gl</code> or <code>brew install legendary</code>
                                 </div>
-                                <div class="help-text" style="margin-top: 12px;">
-                                    Legendary stores credentials securely. You only need to authenticate once.
+                            </div>
+
+                            <!-- Authentication UI -->
+                            <div id="epic-auth-ui" class="form-group" style="display: none;">
+                                <label>Authenticate with Epic Games</label>
+                                <div class="epic-auth-steps">
+                                    <div class="step-item">
+                                        <span class="step-number">1</span>
+                                        <span class="step-text">Click the button below to open the Epic login page</span>
+                                    </div>
+                                    <div class="step-item">
+                                        <span class="step-number">2</span>
+                                        <span class="step-text">Log in to your Epic Games account</span>
+                                    </div>
+                                    <div class="step-item">
+                                        <span class="step-number">3</span>
+                                        <span class="step-text">Copy the <code>authorizationCode</code> value from the JSON response</span>
+                                    </div>
+                                    <div class="step-item">
+                                        <span class="step-number">4</span>
+                                        <span class="step-text">Paste the code below and click "Submit Code"</span>
+                                    </div>
                                 </div>
+                                <div style="margin-top: 16px;">
+                                    <a href="https://legendary.gl/epiclogin" target="_blank" class="btn btn-secondary" style="margin-bottom: 12px;">
+                                        Open Epic Login Page
+                                    </a>
+                                </div>
+                                <div class="auth-code-input">
+                                    <input type="text" id="epic-auth-code" placeholder="Paste authorization code here" style="flex: 1;">
+                                    <button type="button" class="btn btn-primary" onclick="submitEpicAuthCode()">Submit Code</button>
+                                </div>
+                                <div id="epic-auth-error" class="error-text" style="display: none; margin-top: 8px;"></div>
+                            </div>
+
+                            <div class="form-group">
+                                <button type="button" id="epic-auth-btn" class="btn btn-secondary" onclick="startEpicAuth()" style="display: none;">
+                                    Authenticate
+                                </button>
+                                <button type="button" id="epic-check-btn" class="btn btn-secondary" onclick="checkEpicStatus()" style="margin-left: 8px;">
+                                    Refresh Status
+                                </button>
+                            </div>
+
+                            <div class="help-text" style="margin-top: 12px;">
+                                Legendary stores credentials securely. You only need to authenticate once.
                             </div>
                         </div>
                     </div>
@@ -983,6 +1145,100 @@
                 showStatus('Network error: ' + error.message, 'error');
             });
         }
+
+        // Epic Authentication
+        function checkEpicStatus() {
+            const statusEl = document.getElementById('epic-auth-status');
+            const indicator = statusEl.querySelector('.status-indicator');
+            const text = statusEl.querySelector('.status-text');
+            const authBtn = document.getElementById('epic-auth-btn');
+            const authUi = document.getElementById('epic-auth-ui');
+
+            indicator.className = 'status-indicator checking';
+            text.textContent = 'Checking...';
+
+            fetch('/api/epic/status')
+            .then(response => response.json())
+            .then(data => {
+                if (!data.success) {
+                    indicator.className = 'status-indicator not-authenticated';
+                    text.textContent = 'Error: ' + (data.error || 'Unknown error');
+                    return;
+                }
+
+                if (!data.installed) {
+                    indicator.className = 'status-indicator not-installed';
+                    text.textContent = 'Legendary CLI not installed';
+                    authBtn.style.display = 'none';
+                    authUi.style.display = 'none';
+                } else if (data.authenticated) {
+                    indicator.className = 'status-indicator authenticated';
+                    text.textContent = 'Authenticated as ' + data.username;
+                    authBtn.style.display = 'none';
+                    authUi.style.display = 'none';
+                } else {
+                    indicator.className = 'status-indicator not-authenticated';
+                    text.textContent = data.needs_reauth ? 'Re-authentication required' : 'Not authenticated';
+                    authBtn.style.display = 'inline-flex';
+                }
+            })
+            .catch(error => {
+                indicator.className = 'status-indicator not-authenticated';
+                text.textContent = 'Error checking status';
+            });
+        }
+
+        function startEpicAuth() {
+            const authUi = document.getElementById('epic-auth-ui');
+            const authBtn = document.getElementById('epic-auth-btn');
+            authUi.style.display = 'block';
+            authBtn.style.display = 'none';
+            document.getElementById('epic-auth-code').value = '';
+            document.getElementById('epic-auth-error').style.display = 'none';
+        }
+
+        function submitEpicAuthCode() {
+            const codeInput = document.getElementById('epic-auth-code');
+            const errorEl = document.getElementById('epic-auth-error');
+            const code = codeInput.value.trim();
+
+            if (!code) {
+                errorEl.textContent = 'Please enter an authorization code';
+                errorEl.style.display = 'block';
+                return;
+            }
+
+            errorEl.style.display = 'none';
+            showStatus('Authenticating with Epic Games...', 'loading');
+
+            fetch('/api/epic/auth', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ code: code })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    showStatus(data.message, 'success');
+                    document.getElementById('epic-auth-ui').style.display = 'none';
+                    checkEpicStatus();
+                } else {
+                    errorEl.textContent = data.error || 'Authentication failed';
+                    errorEl.style.display = 'block';
+                    showStatus('Epic authentication failed', 'error');
+                }
+            })
+            .catch(error => {
+                errorEl.textContent = 'Network error: ' + error.message;
+                errorEl.style.display = 'block';
+                showStatus('Network error', 'error');
+            });
+        }
+
+        // Check Epic status on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            checkEpicStatus();
+        });
 
         // Collapsible sections
         function toggleCollapsible(header) {

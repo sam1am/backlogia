@@ -232,6 +232,16 @@ def import_gog_games(conn):
                     except (ValueError, TypeError):
                         pass
 
+                # Combine genres and themes, de-duplicate (case-insensitive)
+                genres = game.get("genres", [])
+                themes = game.get("themes", [])
+                seen = set()
+                combined_tags = []
+                for tag in genres + themes:
+                    if tag and tag.lower() not in seen:
+                        seen.add(tag.lower())
+                        combined_tags.append(tag)
+
                 cursor.execute("""
                     INSERT OR REPLACE INTO games (
                         name, store, store_id, description, developers,
@@ -245,7 +255,7 @@ def import_gog_games(conn):
                     game.get("summary"),
                     json.dumps(game.get("developers", [])),
                     json.dumps(game.get("publishers", [])),
-                    json.dumps(game.get("genres", [])),
+                    json.dumps(combined_tags),
                     game.get("cover_image"),
                     game.get("background_image"),
                     game.get("icon"),

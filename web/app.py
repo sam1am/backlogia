@@ -14,11 +14,16 @@ from settings import (
     STEAM_ID, STEAM_API_KEY, IGDB_CLIENT_ID, IGDB_CLIENT_SECRET, ITCH_API_KEY,
     HUMBLE_SESSION_COOKIE, GOG_DB_PATH
 )
-from igdb_sync import IGDBClient, sync_games as igdb_sync_games, add_igdb_columns
+from igdb_sync import (
+    IGDBClient, sync_games as igdb_sync_games, add_igdb_columns,
+    extract_genres_and_themes, merge_and_dedupe_genres
+)
 from build_database import (
     create_database, import_steam_games, import_epic_games,
     import_gog_games, import_itch_games, import_humble_games
 )
+from epic import is_legendary_installed, check_authentication
+import subprocess
 
 app = Flask(__name__)
 
@@ -162,6 +167,7 @@ def library():
 
     # Get filter parameters
     store_filters = request.args.getlist("stores")  # Multi-select stores
+    genre_filters = request.args.getlist("genres")  # Multi-select genres
     search = request.args.get("search", "")
     sort_by = request.args.get("sort", "name")
     sort_order = request.args.get("order", "asc")
@@ -174,6 +180,16 @@ def library():
         placeholders = ",".join("?" * len(store_filters))
         query += f" AND store IN ({placeholders})"
         params.extend(store_filters)
+
+    if genre_filters:
+        # Filter by genres (JSON array stored in genres column)
+        # Use LIKE with JSON pattern matching for each genre
+        genre_conditions = []
+        for genre in genre_filters:
+            # Match genre in JSON array (case-insensitive)
+            genre_conditions.append("LOWER(genres) LIKE ?")
+            params.append(f'%"{genre.lower()}"%')
+        query += " AND (" + " OR ".join(genre_conditions) + ")"
 
     if search:
         query += " AND name LIKE ?"
@@ -230,16 +246,33 @@ def library():
     cursor.execute("SELECT COUNT(*) FROM games WHERE hidden = 1")
     hidden_count = cursor.fetchone()[0]
 
+    # Get all unique genres with counts
+    cursor.execute("SELECT genres FROM games WHERE genres IS NOT NULL AND genres != '[]'" + EXCLUDE_HIDDEN_FILTER)
+    genre_rows = cursor.fetchall()
+    genre_counts = {}
+    for row in genre_rows:
+        try:
+            genres_list = json.loads(row[0]) if row[0] else []
+            for genre in genres_list:
+                if genre:
+                    genre_counts[genre] = genre_counts.get(genre, 0) + 1
+        except (json.JSONDecodeError, TypeError):
+            pass
+    # Sort genres by count (descending) then alphabetically
+    genre_counts = dict(sorted(genre_counts.items(), key=lambda x: (-x[1], x[0].lower())))
+
     conn.close()
 
     return render_template(
         "index.html",
         games=grouped_games,
         store_counts=store_counts,
+        genre_counts=genre_counts,
         total_count=total_count,
         unique_count=unique_count,
         hidden_count=hidden_count,
         current_stores=store_filters,
+        current_genres=genre_filters,
         current_search=search,
         current_sort=sort_by,
         current_order=sort_order,
@@ -434,6 +467,16 @@ def update_igdb(game_id):
         # Update the database
         conn = get_db()
         cursor = conn.cursor()
+
+        # Fetch existing genres to merge with IGDB data
+        cursor.execute("SELECT genres FROM games WHERE id = ?", (game_id,))
+        row = cursor.fetchone()
+        existing_genres = row[0] if row else None
+
+        # Extract genres and themes from IGDB and merge with existing
+        igdb_tags = extract_genres_and_themes(igdb_game)
+        merged_genres = merge_and_dedupe_genres(existing_genres, igdb_tags)
+
         cursor.execute(
             """UPDATE games SET
                 igdb_id = ?,
@@ -448,7 +491,8 @@ def update_igdb(game_id):
                 igdb_cover_url = ?,
                 igdb_screenshots = ?,
                 igdb_matched_at = CURRENT_TIMESTAMP,
-                nsfw = ?
+                nsfw = ?,
+                genres = ?
             WHERE id = ?""",
             (
                 igdb_game.get("id"),
@@ -463,6 +507,7 @@ def update_igdb(game_id):
                 cover_url,
                 json.dumps(screenshots) if screenshots else None,
                 1 if is_nsfw else 0,
+                merged_genres,
                 game_id,
             ),
         )
@@ -833,6 +878,98 @@ def sync_store(store):
 
         return jsonify({"success": True, "message": message, "results": results})
 
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)}), 500
+
+
+@app.route("/api/epic/status", methods=["GET"])
+def epic_auth_status():
+    """Check Epic Games authentication status via Legendary."""
+    try:
+        if not is_legendary_installed():
+            return jsonify({
+                "success": True,
+                "installed": False,
+                "authenticated": False,
+                "message": "Legendary CLI is not installed"
+            })
+
+        is_auth, username, error = check_authentication()
+
+        if error == "corrective_action":
+            return jsonify({
+                "success": True,
+                "installed": True,
+                "authenticated": False,
+                "needs_reauth": True,
+                "message": "Epic requires you to accept updated terms. Please re-authenticate."
+            })
+
+        return jsonify({
+            "success": True,
+            "installed": True,
+            "authenticated": is_auth,
+            "username": username,
+            "message": f"Logged in as {username}" if is_auth else "Not authenticated"
+        })
+
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)}), 500
+
+
+@app.route("/api/epic/auth", methods=["POST"])
+def epic_authenticate():
+    """Authenticate with Epic Games using an authorization code."""
+    try:
+        if not is_legendary_installed():
+            return jsonify({
+                "success": False,
+                "error": "Legendary CLI is not installed. Please install it first."
+            }), 400
+
+        data = request.get_json() or {}
+        auth_code = data.get("code", "").strip()
+
+        if not auth_code:
+            return jsonify({
+                "success": False,
+                "error": "Authorization code is required"
+            }), 400
+
+        # Run legendary auth with the provided code
+        result = subprocess.run(
+            ["legendary", "auth", "--code", auth_code],
+            capture_output=True,
+            text=True,
+            timeout=30
+        )
+
+        if result.returncode == 0:
+            # Verify authentication succeeded
+            is_auth, username, _ = check_authentication()
+            if is_auth:
+                return jsonify({
+                    "success": True,
+                    "message": f"Successfully authenticated as {username}",
+                    "username": username
+                })
+            else:
+                return jsonify({
+                    "success": False,
+                    "error": "Authentication appeared to succeed but verification failed"
+                }), 500
+        else:
+            error_msg = result.stderr.strip() if result.stderr else "Authentication failed"
+            return jsonify({
+                "success": False,
+                "error": error_msg
+            }), 400
+
+    except subprocess.TimeoutExpired:
+        return jsonify({
+            "success": False,
+            "error": "Authentication timed out"
+        }), 500
     except Exception as e:
         return jsonify({"success": False, "error": str(e)}), 500
 

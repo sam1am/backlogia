@@ -246,6 +246,64 @@ def add_igdb_columns(conn):
     conn.commit()
 
 
+def extract_genres_and_themes(igdb_data):
+    """Extract genres and themes from IGDB data as a combined list of tag names."""
+    tags = []
+
+    # Extract genres (e.g., "Action", "RPG", "Adventure")
+    if igdb_data.get("genres"):
+        for genre in igdb_data["genres"]:
+            if genre.get("name"):
+                tags.append(genre["name"])
+
+    # Extract themes (e.g., "Fantasy", "Sci-fi", "Horror")
+    if igdb_data.get("themes"):
+        for theme in igdb_data["themes"]:
+            # Skip the "Erotic" theme (ID 42) - handled separately via NSFW flag
+            if theme.get("id") == 42:
+                continue
+            if theme.get("name"):
+                tags.append(theme["name"])
+
+    return tags
+
+
+def merge_and_dedupe_genres(existing_genres_json, new_genres):
+    """
+    Merge existing genres with new genres and de-duplicate.
+
+    Args:
+        existing_genres_json: JSON string of existing genres (or None)
+        new_genres: List of new genre/theme names to add
+
+    Returns:
+        JSON string of merged and de-duplicated genres
+    """
+    # Parse existing genres
+    existing = []
+    if existing_genres_json:
+        try:
+            existing = json.loads(existing_genres_json)
+            if not isinstance(existing, list):
+                existing = []
+        except (json.JSONDecodeError, TypeError):
+            existing = []
+
+    # Combine and de-duplicate (case-insensitive, preserving original case)
+    seen = set()
+    merged = []
+
+    for genre in existing + new_genres:
+        if not genre:
+            continue
+        genre_lower = genre.lower().strip()
+        if genre_lower not in seen:
+            seen.add(genre_lower)
+            merged.append(genre.strip())
+
+    return json.dumps(merged) if merged else None
+
+
 def calculate_match_score(game_name, igdb_result):
     """Calculate how well an IGDB result matches our game."""
     if not igdb_result or not game_name:
@@ -280,13 +338,14 @@ def sync_games(conn, client, limit=None, force=False):
     cursor = conn.cursor()
 
     # Get games that haven't been matched yet (or all if force)
+    # Also fetch existing genres to merge with IGDB data
     if force:
         cursor.execute(
-            "SELECT id, name, store FROM games WHERE name IS NOT NULL ORDER BY name"
+            "SELECT id, name, store, genres FROM games WHERE name IS NOT NULL ORDER BY name"
         )
     else:
         cursor.execute(
-            """SELECT id, name, store FROM games
+            """SELECT id, name, store, genres FROM games
                WHERE name IS NOT NULL AND igdb_id IS NULL
                ORDER BY name"""
         )
@@ -301,7 +360,7 @@ def sync_games(conn, client, limit=None, force=False):
     matched = 0
     failed = 0
 
-    for i, (game_id, name, store) in enumerate(games):
+    for i, (game_id, name, store, existing_genres) in enumerate(games):
         print(f"[{i+1}/{len(games)}] Searching for: {name}...", end=" ", flush=True)
 
         try:
@@ -346,6 +405,10 @@ def sync_games(conn, client, limit=None, force=False):
                 # Check if game is NSFW
                 is_nsfw = IGDBClient.is_nsfw(best_match)
 
+                # Extract genres and themes from IGDB and merge with existing
+                igdb_tags = extract_genres_and_themes(best_match)
+                merged_genres = merge_and_dedupe_genres(existing_genres, igdb_tags)
+
                 # Update database
                 cursor.execute(
                     """UPDATE games SET
@@ -361,7 +424,8 @@ def sync_games(conn, client, limit=None, force=False):
                         igdb_cover_url = ?,
                         igdb_screenshots = ?,
                         igdb_matched_at = CURRENT_TIMESTAMP,
-                        nsfw = ?
+                        nsfw = ?,
+                        genres = ?
                     WHERE id = ?""",
                     (
                         best_match.get("id"),
@@ -376,6 +440,7 @@ def sync_games(conn, client, limit=None, force=False):
                         cover_url,
                         json.dumps(screenshots) if screenshots else None,
                         1 if is_nsfw else 0,
+                        merged_genres,
                         game_id,
                     ),
                 )
