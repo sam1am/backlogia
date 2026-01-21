@@ -338,30 +338,76 @@
             left: 0;
             width: 100%;
             height: 100%;
-            background: rgba(0, 0, 0, 0.95);
+            background: rgba(0, 0, 0, 0.98);
             z-index: 1000;
             justify-content: center;
             align-items: center;
-            cursor: pointer;
         }
 
         .lightbox.active {
             display: flex;
         }
 
-        .lightbox img {
+        .lightbox-content {
+            position: relative;
             max-width: 95%;
             max-height: 95%;
+        }
+
+        .lightbox-img {
+            max-width: 100%;
+            max-height: 90vh;
             border-radius: 8px;
         }
 
         .lightbox-close {
             position: absolute;
-            top: 20px;
-            right: 30px;
+            top: -40px;
+            right: 0;
             font-size: 2rem;
             color: white;
             cursor: pointer;
+            background: none;
+            border: none;
+        }
+
+        .lightbox-close:hover {
+            color: #667eea;
+        }
+
+        .lightbox-nav {
+            position: absolute;
+            top: 50%;
+            transform: translateY(-50%);
+            font-size: 3rem;
+            color: white;
+            cursor: pointer;
+            background: rgba(0, 0, 0, 0.5);
+            border: none;
+            padding: 20px;
+            border-radius: 8px;
+            transition: background 0.2s;
+        }
+
+        .lightbox-nav:hover {
+            background: rgba(102, 126, 234, 0.8);
+        }
+
+        .lightbox-prev {
+            left: 20px;
+        }
+
+        .lightbox-next {
+            right: 20px;
+        }
+
+        .lightbox-counter {
+            position: absolute;
+            bottom: -40px;
+            left: 50%;
+            transform: translateX(-50%);
+            color: #888;
+            font-size: 0.9rem;
         }
 
         /* IGDB Settings Section */
@@ -673,7 +719,10 @@
     </div>
 
     <div class="container">
-        <a href="/" class="back-link">← Back to Library</a>
+        <div style="display: flex; gap: 20px; margin-bottom: 20px;">
+            <a href="/" class="back-link" style="margin-bottom: 0;">← Back to Library</a>
+            <a href="/discover" class="back-link" style="margin-bottom: 0;">Discover</a>
+        </div>
 
         <div class="content-grid">
             <div class="main-content">
@@ -716,7 +765,7 @@
                     <div class="screenshots-grid">
                         {% for url in screenshots %}
                         <img src="{{ url }}" alt="Screenshot {{ loop.index }}" class="screenshot"
-                             onclick="openLightbox('{{ url.replace('t_screenshot_big', 't_1080p') }}')" loading="lazy">
+                             data-index="{{ loop.index0 }}" onclick="openLightbox({{ loop.index0 }})" loading="lazy">
                         {% endfor %}
                     </div>
                 </div>
@@ -870,13 +919,27 @@
 
     <!-- Lightbox for screenshots -->
     <div id="lightbox" class="lightbox" onclick="closeLightbox()">
-        <span class="lightbox-close">&times;</span>
-        <img id="lightbox-img" src="" alt="Screenshot">
+        <div class="lightbox-content" onclick="event.stopPropagation()">
+            <button class="lightbox-close" onclick="closeLightbox()">&times;</button>
+            <button class="lightbox-nav lightbox-prev" onclick="prevScreenshot()">&lsaquo;</button>
+            <img id="lightbox-img" class="lightbox-img" src="" alt="Screenshot">
+            <button class="lightbox-nav lightbox-next" onclick="nextScreenshot()">&rsaquo;</button>
+            <div id="lightbox-counter" class="lightbox-counter"></div>
+        </div>
     </div>
 
     <script>
-        function openLightbox(url) {
-            document.getElementById('lightbox-img').src = url;
+        // Screenshots data
+        const screenshots = [
+            {% for url in parse_json(game.igdb_screenshots) or [] %}
+            {{ url.replace('t_screenshot_big', 't_1080p')|tojson }},
+            {% endfor %}
+        ];
+        let currentScreenshotIndex = 0;
+
+        function openLightbox(index) {
+            currentScreenshotIndex = index;
+            updateLightbox();
             document.getElementById('lightbox').classList.add('active');
             document.body.style.overflow = 'hidden';
         }
@@ -886,8 +949,27 @@
             document.body.style.overflow = '';
         }
 
+        function updateLightbox() {
+            document.getElementById('lightbox-img').src = screenshots[currentScreenshotIndex];
+            document.getElementById('lightbox-counter').textContent = `${currentScreenshotIndex + 1} / ${screenshots.length}`;
+        }
+
+        function nextScreenshot() {
+            currentScreenshotIndex = (currentScreenshotIndex + 1) % screenshots.length;
+            updateLightbox();
+        }
+
+        function prevScreenshot() {
+            currentScreenshotIndex = (currentScreenshotIndex - 1 + screenshots.length) % screenshots.length;
+            updateLightbox();
+        }
+
         document.addEventListener('keydown', function(e) {
-            if (e.key === 'Escape') closeLightbox();
+            if (document.getElementById('lightbox').classList.contains('active')) {
+                if (e.key === 'Escape') closeLightbox();
+                if (e.key === 'ArrowRight') nextScreenshot();
+                if (e.key === 'ArrowLeft') prevScreenshot();
+            }
         });
 
         // IGDB Sync Functions

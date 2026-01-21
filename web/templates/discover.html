@@ -1,0 +1,1610 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Discover - Game Library</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+            background: linear-gradient(135deg, #0d0d1a 0%, #1a1a2e 50%, #16213e 100%);
+            min-height: 100vh;
+            color: #e4e4e4;
+            overflow-x: hidden;
+        }
+
+        /* Navigation */
+        .nav {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 100;
+            background: linear-gradient(180deg, rgba(13, 13, 26, 0.95) 0%, rgba(13, 13, 26, 0) 100%);
+            padding: 20px 40px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .nav-brand {
+            font-size: 1.5rem;
+            font-weight: 700;
+            background: linear-gradient(90deg, #667eea, #764ba2);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            text-decoration: none;
+        }
+
+        .nav-links {
+            display: flex;
+            gap: 30px;
+        }
+
+        .nav-link {
+            color: #888;
+            text-decoration: none;
+            font-size: 0.95rem;
+            transition: color 0.2s;
+        }
+
+        .nav-link:hover, .nav-link.active {
+            color: #667eea;
+        }
+
+        /* Hero Section */
+        .hero {
+            position: relative;
+            height: 70vh;
+            min-height: 500px;
+            overflow: hidden;
+            margin-bottom: 40px;
+        }
+
+        .hero-bg {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            filter: brightness(0.4);
+            transform: scale(1.05);
+            transition: transform 8s ease-out;
+        }
+
+        .hero:hover .hero-bg {
+            transform: scale(1.1);
+        }
+
+        .hero-gradient {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 60%;
+            background: linear-gradient(0deg, #0d0d1a 0%, rgba(13, 13, 26, 0.8) 50%, transparent 100%);
+        }
+
+        .hero-content {
+            position: absolute;
+            bottom: 60px;
+            left: 0;
+            right: 0;
+            padding: 0 60px;
+            z-index: 10;
+        }
+
+        .hero-badge {
+            display: inline-block;
+            padding: 6px 16px;
+            background: linear-gradient(90deg, #667eea, #764ba2);
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 15px;
+        }
+
+        .hero-title {
+            font-size: 3.5rem;
+            font-weight: 800;
+            margin-bottom: 15px;
+            text-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+            max-width: 700px;
+        }
+
+        .hero-meta {
+            display: flex;
+            gap: 20px;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .hero-rating {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            background: rgba(255, 255, 255, 0.1);
+            padding: 8px 16px;
+            border-radius: 8px;
+            backdrop-filter: blur(10px);
+        }
+
+        .hero-rating-score {
+            font-size: 1.4rem;
+            font-weight: 700;
+            color: #4caf50;
+        }
+
+        .hero-rating-label {
+            font-size: 0.8rem;
+            color: #aaa;
+        }
+
+        .hero-genres {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+
+        .hero-genre {
+            padding: 6px 14px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 20px;
+            font-size: 0.85rem;
+            backdrop-filter: blur(10px);
+        }
+
+        .hero-description {
+            max-width: 600px;
+            font-size: 1.1rem;
+            line-height: 1.6;
+            color: #ccc;
+            margin-bottom: 25px;
+            display: -webkit-box;
+            -webkit-line-clamp: 3;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+        }
+
+        .hero-actions {
+            display: flex;
+            gap: 15px;
+        }
+
+        .btn {
+            padding: 14px 32px;
+            border: none;
+            border-radius: 8px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .btn-primary {
+            background: linear-gradient(90deg, #667eea, #764ba2);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 30px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn-secondary {
+            background: rgba(255, 255, 255, 0.1);
+            color: white;
+            backdrop-filter: blur(10px);
+        }
+
+        .btn-secondary:hover {
+            background: rgba(255, 255, 255, 0.2);
+        }
+
+        /* Container */
+        .container {
+            max-width: 1600px;
+            margin: 0 auto;
+            padding: 0 40px;
+        }
+
+        /* Section Header */
+        .section-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 25px;
+        }
+
+        .section-title {
+            font-size: 1.6rem;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .section-title-icon {
+            width: 32px;
+            height: 32px;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1rem;
+        }
+
+        .section-link {
+            color: #667eea;
+            text-decoration: none;
+            font-size: 0.9rem;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .section-link:hover {
+            text-decoration: underline;
+        }
+
+        /* Game Row */
+        .game-section {
+            margin-bottom: 50px;
+        }
+
+        .game-row-container {
+            position: relative;
+        }
+
+        .game-row {
+            display: flex;
+            gap: 20px;
+            overflow-x: auto;
+            scroll-snap-type: x mandatory;
+            scrollbar-width: none;
+            -ms-overflow-style: none;
+            padding-bottom: 10px;
+            scroll-behavior: smooth;
+        }
+
+        .game-row::-webkit-scrollbar {
+            display: none;
+        }
+
+        .scroll-btn {
+            position: absolute;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 48px;
+            height: 48px;
+            border-radius: 50%;
+            background: rgba(0, 0, 0, 0.8);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            color: white;
+            font-size: 1.5rem;
+            cursor: pointer;
+            z-index: 10;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s;
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        .game-row-container:hover .scroll-btn {
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+        .scroll-btn:hover {
+            background: rgba(102, 126, 234, 0.9);
+            transform: translateY(-50%) scale(1.1);
+        }
+
+        .scroll-btn:active {
+            transform: translateY(-50%) scale(0.95);
+        }
+
+        .scroll-btn.disabled {
+            opacity: 0.3 !important;
+            cursor: not-allowed;
+            pointer-events: none;
+        }
+
+        .scroll-btn-left {
+            left: -24px;
+        }
+
+        .scroll-btn-right {
+            right: -24px;
+        }
+
+        @media (max-width: 768px) {
+            .scroll-btn {
+                display: none;
+            }
+        }
+
+        /* Featured Game Card - Large */
+        .featured-card {
+            flex: 0 0 450px;
+            scroll-snap-align: start;
+            background: rgba(255, 255, 255, 0.03);
+            border-radius: 16px;
+            overflow: hidden;
+            cursor: pointer;
+            transition: all 0.3s;
+            position: relative;
+        }
+
+        .featured-card:hover {
+            transform: translateY(-8px);
+            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5);
+            background: rgba(255, 255, 255, 0.06);
+        }
+
+        .featured-card-media {
+            position: relative;
+            height: 250px;
+            overflow: hidden;
+        }
+
+        .featured-card-bg {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            transition: transform 0.5s;
+        }
+
+        .featured-card:hover .featured-card-bg {
+            transform: scale(1.05);
+        }
+
+        .featured-card-gradient {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 120px;
+            background: linear-gradient(0deg, rgba(26, 26, 46, 1) 0%, transparent 100%);
+        }
+
+        .featured-card-cover {
+            position: absolute;
+            bottom: -30px;
+            left: 20px;
+            width: 80px;
+            height: 120px;
+            object-fit: cover;
+            border-radius: 8px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+            border: 2px solid #1a1a2e;
+            display: none; /* Hide the floating cover, we'll show info directly */
+        }
+
+        .featured-card-ratings {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            display: flex;
+            border-radius: 6px;
+            overflow: hidden;
+            font-size: 0.75rem;
+            font-weight: bold;
+            backdrop-filter: blur(10px);
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+        }
+
+        .featured-card-ratings .rating {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 6px 10px;
+            min-width: 32px;
+            color: white;
+        }
+
+        .featured-card-ratings .rating.total {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+        }
+
+        .featured-card-ratings .rating.user {
+            background: linear-gradient(135deg, #2196f3, #1565c0);
+        }
+
+        .featured-card-ratings .rating.critic {
+            background: linear-gradient(135deg, #4caf50, #2e7d32);
+        }
+
+        .featured-card-content {
+            padding: 20px;
+        }
+
+        .featured-card-title {
+            font-size: 1.15rem;
+            font-weight: 700;
+            margin-bottom: 8px;
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+            text-align: left;
+        }
+
+        .featured-card-genres {
+            display: flex;
+            gap: 6px;
+            flex-wrap: wrap;
+            margin-bottom: 10px;
+        }
+
+        .featured-card-genre {
+            padding: 4px 10px;
+            background: rgba(102, 126, 234, 0.2);
+            border-radius: 12px;
+            font-size: 0.75rem;
+            color: #667eea;
+        }
+
+        .featured-card-desc {
+            font-size: 0.85rem;
+            color: #999;
+            line-height: 1.5;
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+            text-align: left;
+        }
+
+        .featured-card-meta {
+            display: flex;
+            gap: 12px;
+            align-items: center;
+            margin-top: 10px;
+            font-size: 0.8rem;
+            color: #888;
+        }
+
+        .featured-card-screenshots {
+            display: flex;
+            gap: 8px;
+            padding: 0 20px 20px;
+            position: relative;
+            z-index: 10;
+        }
+
+        .featured-card-screenshot {
+            flex: 1;
+            height: 60px;
+            object-fit: cover;
+            border-radius: 6px;
+            opacity: 0.7;
+            transition: opacity 0.2s, transform 0.2s;
+            cursor: pointer;
+            position: relative;
+            z-index: 11;
+        }
+
+        .featured-card-screenshot:hover {
+            opacity: 1;
+            transform: scale(1.05);
+        }
+
+        /* Expanded Game Card (for click/focus) */
+        .expanded-card-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.9);
+            z-index: 1000;
+            overflow-y: auto;
+            padding: 40px;
+        }
+
+        .expanded-card-overlay.active {
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+        }
+
+        .expanded-card {
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            border-radius: 20px;
+            max-width: 1000px;
+            width: 100%;
+            overflow: hidden;
+            position: relative;
+            margin: 20px 0;
+        }
+
+        .expanded-card-close {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            width: 40px;
+            height: 40px;
+            background: rgba(255, 255, 255, 0.1);
+            border: none;
+            border-radius: 50%;
+            color: white;
+            font-size: 1.5rem;
+            cursor: pointer;
+            z-index: 10;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .expanded-card-close:hover {
+            background: rgba(255, 255, 255, 0.2);
+        }
+
+        .expanded-card-hero {
+            position: relative;
+            height: 350px;
+        }
+
+        .expanded-card-hero-bg {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            filter: brightness(0.5);
+        }
+
+        .expanded-card-hero-gradient {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 200px;
+            background: linear-gradient(0deg, #1a1a2e 0%, transparent 100%);
+        }
+
+        .expanded-card-hero-content {
+            position: absolute;
+            bottom: 30px;
+            left: 30px;
+            right: 30px;
+            display: flex;
+            gap: 25px;
+            align-items: flex-end;
+        }
+
+        .expanded-card-cover {
+            width: 150px;
+            height: 225px;
+            object-fit: cover;
+            border-radius: 12px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
+            flex-shrink: 0;
+        }
+
+        .expanded-card-header {
+            flex: 1;
+        }
+
+        .expanded-card-title {
+            font-size: 2rem;
+            font-weight: 800;
+            margin-bottom: 10px;
+        }
+
+        .expanded-card-ratings {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 15px;
+        }
+
+        .expanded-card-rating-item {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 10px 18px;
+            border-radius: 10px;
+            text-align: center;
+        }
+
+        .expanded-card-rating-score {
+            font-size: 1.5rem;
+            font-weight: 700;
+        }
+
+        .expanded-card-rating-score.high {
+            color: #4caf50;
+        }
+
+        .expanded-card-rating-score.medium {
+            color: #ff9800;
+        }
+
+        .expanded-card-rating-label {
+            font-size: 0.75rem;
+            color: #888;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .expanded-card-body {
+            padding: 30px;
+        }
+
+        .expanded-card-genres {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin-bottom: 20px;
+        }
+
+        .expanded-card-genre {
+            padding: 8px 16px;
+            background: rgba(102, 126, 234, 0.2);
+            border-radius: 20px;
+            font-size: 0.85rem;
+            color: #667eea;
+        }
+
+        .expanded-card-description {
+            font-size: 1rem;
+            line-height: 1.7;
+            color: #ccc;
+            margin-bottom: 25px;
+        }
+
+        .expanded-card-section-title {
+            font-size: 1.1rem;
+            font-weight: 600;
+            margin-bottom: 15px;
+            color: #667eea;
+        }
+
+        .expanded-card-screenshots {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+            gap: 12px;
+            margin-bottom: 20px;
+        }
+
+        .expanded-card-screenshot {
+            width: 100%;
+            aspect-ratio: 16/9;
+            object-fit: cover;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: transform 0.2s, opacity 0.2s;
+        }
+
+        .expanded-card-screenshot:hover {
+            transform: scale(1.02);
+            opacity: 0.9;
+        }
+
+        .expanded-card-actions {
+            display: flex;
+            gap: 15px;
+            padding: 20px 30px 30px;
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        /* Lightbox for screenshots */
+        .lightbox {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.98);
+            z-index: 2000;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .lightbox.active {
+            display: flex;
+        }
+
+        .lightbox-content {
+            position: relative;
+            max-width: 95%;
+            max-height: 95%;
+        }
+
+        .lightbox-img {
+            max-width: 100%;
+            max-height: 90vh;
+            border-radius: 8px;
+        }
+
+        .lightbox-close {
+            position: absolute;
+            top: -40px;
+            right: 0;
+            font-size: 2rem;
+            color: white;
+            cursor: pointer;
+            background: none;
+            border: none;
+        }
+
+        .lightbox-nav {
+            position: absolute;
+            top: 50%;
+            transform: translateY(-50%);
+            font-size: 3rem;
+            color: white;
+            cursor: pointer;
+            background: rgba(0, 0, 0, 0.5);
+            border: none;
+            padding: 20px;
+            border-radius: 8px;
+            transition: background 0.2s;
+        }
+
+        .lightbox-nav:hover {
+            background: rgba(0, 0, 0, 0.8);
+        }
+
+        .lightbox-prev {
+            left: 20px;
+        }
+
+        .lightbox-next {
+            right: 20px;
+        }
+
+        .lightbox-counter {
+            position: absolute;
+            bottom: -40px;
+            left: 50%;
+            transform: translateX(-50%);
+            color: #888;
+            font-size: 0.9rem;
+        }
+
+        /* Empty State */
+        .empty-state {
+            text-align: center;
+            padding: 80px 40px;
+        }
+
+        .empty-state-icon {
+            font-size: 4rem;
+            margin-bottom: 20px;
+            opacity: 0.3;
+        }
+
+        .empty-state-title {
+            font-size: 1.5rem;
+            margin-bottom: 10px;
+            color: #888;
+        }
+
+        .empty-state-desc {
+            color: #666;
+            margin-bottom: 25px;
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .nav {
+                padding: 15px 20px;
+            }
+
+            .hero {
+                height: 60vh;
+            }
+
+            .hero-content {
+                padding: 0 20px;
+            }
+
+            .hero-title {
+                font-size: 2rem;
+            }
+
+            .container {
+                padding: 0 20px;
+            }
+
+            .featured-card {
+                flex: 0 0 320px;
+            }
+
+            .featured-card-content {
+                padding: 40px 15px 20px 120px;
+            }
+
+            .featured-card-cover {
+                width: 80px;
+                height: 120px;
+            }
+
+            .game-card {
+                flex: 0 0 150px;
+            }
+
+            .expanded-card-hero-content {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+
+            .expanded-card-cover {
+                width: 100px;
+                height: 150px;
+            }
+
+            .expanded-card-title {
+                font-size: 1.5rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <nav class="nav">
+        <a href="/" class="nav-brand">Game Library</a>
+        <div class="nav-links">
+            <a href="/" class="nav-link">Library</a>
+            <a href="/discover" class="nav-link active">Discover</a>
+            <a href="/settings" class="nav-link">Settings</a>
+        </div>
+    </nav>
+
+    {% if featured_games %}
+    {% set hero_game = featured_games[0] %}
+    {% set hero_screenshots = parse_json(hero_game.igdb_screenshots) %}
+    {% set hero_bg = hero_screenshots[0] if hero_screenshots else (hero_game.igdb_cover_url or hero_game.cover_image) %}
+    {% set hero_genres = parse_json(hero_game.genres) %}
+
+    <section class="hero">
+        {% if hero_bg %}
+        <img src="{{ hero_bg.replace('t_screenshot_big', 't_1080p') if 't_screenshot' in hero_bg else hero_bg }}" alt="" class="hero-bg">
+        {% endif %}
+        <div class="hero-gradient"></div>
+        <div class="hero-content">
+            <span class="hero-badge">Featured in Your Library</span>
+            <h1 class="hero-title">{{ hero_game.name }}</h1>
+            <div class="hero-meta">
+                {% if hero_game.total_rating %}
+                <div class="hero-rating">
+                    <span class="hero-rating-score">{{ hero_game.total_rating|round|int }}</span>
+                    <span class="hero-rating-label">IGDB Score</span>
+                </div>
+                {% endif %}
+                {% if hero_genres %}
+                <div class="hero-genres">
+                    {% for genre in hero_genres[:3] %}
+                    <span class="hero-genre">{{ genre }}</span>
+                    {% endfor %}
+                </div>
+                {% endif %}
+            </div>
+            {% set hero_desc = hero_game.igdb_summary or hero_game.description %}
+            {% if hero_desc %}
+            <p class="hero-description">{{ hero_desc }}</p>
+            {% endif %}
+            <div class="hero-actions">
+                <a href="/game/{{ hero_game.id }}" class="btn btn-primary">View Details</a>
+                <button class="btn btn-secondary" onclick="openExpandedCard({{ hero_game|tojson|e }})">Quick Look</button>
+            </div>
+        </div>
+    </section>
+    {% endif %}
+
+    <div class="container">
+        {% if featured_games|length > 1 %}
+        <section class="game-section">
+            <div class="section-header">
+                <h2 class="section-title">
+                    <span class="section-title-icon">*</span>
+                    {% if popularity_source == 'igdb_popularity' %}
+                    Trending in Your Library
+                    {% else %}
+                    Top Rated in Your Library
+                    {% endif %}
+                </h2>
+            </div>
+            <div class="game-row-container">
+                <button class="scroll-btn scroll-btn-left" onclick="scrollRow(this, -1)">&lsaquo;</button>
+                <div class="game-row">
+                {% for game in featured_games[1:] %}
+                {% set screenshots = parse_json(game.igdb_screenshots) %}
+                {% set genres = parse_json(game.genres) %}
+                {% set cover = game.igdb_cover_url or game.cover_image %}
+                {% set bg = screenshots[0] if screenshots else cover %}
+                <div class="featured-card" data-game-id="{{ game.id }}" onclick="openExpandedCardFromEvent(event, this)">
+                    <div class="featured-card-media">
+                        {% if bg %}
+                        <img src="{{ bg }}" alt="" class="featured-card-bg">
+                        {% endif %}
+                        <div class="featured-card-gradient"></div>
+                        {% if game.total_rating or game.igdb_rating or game.aggregated_rating %}
+                        <div class="featured-card-ratings" title="Total | User | Critic">
+                            {% if game.total_rating %}<span class="rating total">{{ game.total_rating|round|int }}</span>{% endif %}
+                            {% if game.igdb_rating %}<span class="rating user">{{ game.igdb_rating|round|int }}</span>{% endif %}
+                            {% if game.aggregated_rating %}<span class="rating critic">{{ game.aggregated_rating|round|int }}</span>{% endif %}
+                        </div>
+                        {% endif %}
+                    </div>
+                    <div class="featured-card-content">
+                        <h3 class="featured-card-title">{{ game.name }}</h3>
+                        {% if genres %}
+                        <div class="featured-card-genres">
+                            {% for genre in genres[:2] %}
+                            <span class="featured-card-genre">{{ genre }}</span>
+                            {% endfor %}
+                        </div>
+                        {% endif %}
+                        {% set desc = game.igdb_summary or game.description %}
+                        {% if desc %}
+                        <p class="featured-card-desc">{{ desc }}</p>
+                        {% endif %}
+                    </div>
+                    {% if screenshots|length > 1 %}
+                    <div class="featured-card-screenshots">
+                        {% for ss in screenshots[1:4] %}
+                        <img src="{{ ss }}" alt="Screenshot" class="featured-card-screenshot" data-index="{{ loop.index }}">
+                        {% endfor %}
+                    </div>
+                    {% endif %}
+                </div>
+                {% endfor %}
+                </div>
+                <button class="scroll-btn scroll-btn-right" onclick="scrollRow(this, 1)">&rsaquo;</button>
+            </div>
+        </section>
+        {% endif %}
+
+        {% if highly_rated %}
+        <section class="game-section">
+            <div class="section-header">
+                <h2 class="section-title">
+                    <span class="section-title-icon">*</span>
+                    Highly Rated (90+)
+                </h2>
+            </div>
+            <div class="game-row-container">
+                <button class="scroll-btn scroll-btn-left" onclick="scrollRow(this, -1)">&lsaquo;</button>
+                <div class="game-row">
+                {% for game in highly_rated %}
+                {% set screenshots = parse_json(game.igdb_screenshots) %}
+                {% set genres = parse_json(game.genres) %}
+                {% set cover = game.igdb_cover_url or game.cover_image %}
+                {% set bg = screenshots[0] if screenshots else cover %}
+                <div class="featured-card" data-game-id="{{ game.id }}" onclick="openExpandedCardFromEvent(event, this)">
+                    <div class="featured-card-media">
+                        {% if bg %}
+                        <img src="{{ bg }}" alt="" class="featured-card-bg" loading="lazy">
+                        {% endif %}
+                        <div class="featured-card-gradient"></div>
+                        {% if game.total_rating or game.igdb_rating or game.aggregated_rating %}
+                        <div class="featured-card-ratings" title="Total | User | Critic">
+                            {% if game.total_rating %}<span class="rating total">{{ game.total_rating|round|int }}</span>{% endif %}
+                            {% if game.igdb_rating %}<span class="rating user">{{ game.igdb_rating|round|int }}</span>{% endif %}
+                            {% if game.aggregated_rating %}<span class="rating critic">{{ game.aggregated_rating|round|int }}</span>{% endif %}
+                        </div>
+                        {% endif %}
+                    </div>
+                    <div class="featured-card-content">
+                        <h3 class="featured-card-title">{{ game.name }}</h3>
+                        {% if genres %}
+                        <div class="featured-card-genres">
+                            {% for genre in genres[:2] %}
+                            <span class="featured-card-genre">{{ genre }}</span>
+                            {% endfor %}
+                        </div>
+                        {% endif %}
+                        {% set desc = game.igdb_summary or game.description %}
+                        {% if desc %}
+                        <p class="featured-card-desc">{{ desc }}</p>
+                        {% endif %}
+                    </div>
+                    {% if screenshots|length > 1 %}
+                    <div class="featured-card-screenshots">
+                        {% for ss in screenshots[1:4] %}
+                        <img src="{{ ss }}" alt="Screenshot" class="featured-card-screenshot" data-index="{{ loop.index }}">
+                        {% endfor %}
+                    </div>
+                    {% endif %}
+                </div>
+                {% endfor %}
+                </div>
+                <button class="scroll-btn scroll-btn-right" onclick="scrollRow(this, 1)">&rsaquo;</button>
+            </div>
+        </section>
+        {% endif %}
+
+        {% if most_played %}
+        <section class="game-section">
+            <div class="section-header">
+                <h2 class="section-title">
+                    <span class="section-title-icon">*</span>
+                    Most Played
+                </h2>
+            </div>
+            <div class="game-row-container">
+                <button class="scroll-btn scroll-btn-left" onclick="scrollRow(this, -1)">&lsaquo;</button>
+                <div class="game-row">
+                {% for game in most_played %}
+                {% set screenshots = parse_json(game.igdb_screenshots) %}
+                {% set genres = parse_json(game.genres) %}
+                {% set cover = game.igdb_cover_url or game.cover_image %}
+                {% set bg = screenshots[0] if screenshots else cover %}
+                <div class="featured-card" data-game-id="{{ game.id }}" onclick="openExpandedCardFromEvent(event, this)">
+                    <div class="featured-card-media">
+                        {% if bg %}
+                        <img src="{{ bg }}" alt="" class="featured-card-bg" loading="lazy">
+                        {% endif %}
+                        <div class="featured-card-gradient"></div>
+                        {% if game.total_rating or game.igdb_rating or game.aggregated_rating %}
+                        <div class="featured-card-ratings" title="Total | User | Critic">
+                            {% if game.total_rating %}<span class="rating total">{{ game.total_rating|round|int }}</span>{% endif %}
+                            {% if game.igdb_rating %}<span class="rating user">{{ game.igdb_rating|round|int }}</span>{% endif %}
+                            {% if game.aggregated_rating %}<span class="rating critic">{{ game.aggregated_rating|round|int }}</span>{% endif %}
+                        </div>
+                        {% endif %}
+                    </div>
+                    <div class="featured-card-content">
+                        <h3 class="featured-card-title">{{ game.name }}</h3>
+                        {% if genres %}
+                        <div class="featured-card-genres">
+                            {% for genre in genres[:2] %}
+                            <span class="featured-card-genre">{{ genre }}</span>
+                            {% endfor %}
+                        </div>
+                        {% endif %}
+                        {% set desc = game.igdb_summary or game.description %}
+                        {% if desc %}
+                        <p class="featured-card-desc">{{ desc }}</p>
+                        {% endif %}
+                        <div class="featured-card-meta">
+                            <span>{{ game.playtime_hours|round(1) }} hours played</span>
+                        </div>
+                    </div>
+                    {% if screenshots|length > 1 %}
+                    <div class="featured-card-screenshots">
+                        {% for ss in screenshots[1:4] %}
+                        <img src="{{ ss }}" alt="Screenshot" class="featured-card-screenshot" data-index="{{ loop.index }}">
+                        {% endfor %}
+                    </div>
+                    {% endif %}
+                </div>
+                {% endfor %}
+                </div>
+                <button class="scroll-btn scroll-btn-right" onclick="scrollRow(this, 1)">&rsaquo;</button>
+            </div>
+        </section>
+        {% endif %}
+
+        {% if critic_favorites %}
+        <section class="game-section">
+            <div class="section-header">
+                <h2 class="section-title">
+                    <span class="section-title-icon">*</span>
+                    Critic Favorites
+                </h2>
+            </div>
+            <div class="game-row-container">
+                <button class="scroll-btn scroll-btn-left" onclick="scrollRow(this, -1)">&lsaquo;</button>
+                <div class="game-row">
+                {% for game in critic_favorites %}
+                {% set screenshots = parse_json(game.igdb_screenshots) %}
+                {% set genres = parse_json(game.genres) %}
+                {% set cover = game.igdb_cover_url or game.cover_image %}
+                {% set bg = screenshots[0] if screenshots else cover %}
+                <div class="featured-card" data-game-id="{{ game.id }}" onclick="openExpandedCardFromEvent(event, this)">
+                    <div class="featured-card-media">
+                        {% if bg %}
+                        <img src="{{ bg }}" alt="" class="featured-card-bg" loading="lazy">
+                        {% endif %}
+                        <div class="featured-card-gradient"></div>
+                        {% if game.total_rating or game.igdb_rating or game.aggregated_rating %}
+                        <div class="featured-card-ratings" title="Total | User | Critic">
+                            {% if game.total_rating %}<span class="rating total">{{ game.total_rating|round|int }}</span>{% endif %}
+                            {% if game.igdb_rating %}<span class="rating user">{{ game.igdb_rating|round|int }}</span>{% endif %}
+                            {% if game.aggregated_rating %}<span class="rating critic">{{ game.aggregated_rating|round|int }}</span>{% endif %}
+                        </div>
+                        {% endif %}
+                    </div>
+                    <div class="featured-card-content">
+                        <h3 class="featured-card-title">{{ game.name }}</h3>
+                        {% if genres %}
+                        <div class="featured-card-genres">
+                            {% for genre in genres[:2] %}
+                            <span class="featured-card-genre">{{ genre }}</span>
+                            {% endfor %}
+                        </div>
+                        {% endif %}
+                        {% set desc = game.igdb_summary or game.description %}
+                        {% if desc %}
+                        <p class="featured-card-desc">{{ desc }}</p>
+                        {% endif %}
+                    </div>
+                    {% if screenshots|length > 1 %}
+                    <div class="featured-card-screenshots">
+                        {% for ss in screenshots[1:4] %}
+                        <img src="{{ ss }}" alt="Screenshot" class="featured-card-screenshot" data-index="{{ loop.index }}">
+                        {% endfor %}
+                    </div>
+                    {% endif %}
+                </div>
+                {% endfor %}
+                </div>
+                <button class="scroll-btn scroll-btn-right" onclick="scrollRow(this, 1)">&rsaquo;</button>
+            </div>
+        </section>
+        {% endif %}
+
+        {% if hidden_gems %}
+        <section class="game-section">
+            <div class="section-header">
+                <h2 class="section-title">
+                    <span class="section-title-icon">*</span>
+                    Hidden Gems
+                </h2>
+            </div>
+            <div class="game-row-container">
+                <button class="scroll-btn scroll-btn-left" onclick="scrollRow(this, -1)">&lsaquo;</button>
+                <div class="game-row">
+                {% for game in hidden_gems %}
+                {% set screenshots = parse_json(game.igdb_screenshots) %}
+                {% set genres = parse_json(game.genres) %}
+                {% set cover = game.igdb_cover_url or game.cover_image %}
+                {% set bg = screenshots[0] if screenshots else cover %}
+                <div class="featured-card" data-game-id="{{ game.id }}" onclick="openExpandedCardFromEvent(event, this)">
+                    <div class="featured-card-media">
+                        {% if bg %}
+                        <img src="{{ bg }}" alt="" class="featured-card-bg" loading="lazy">
+                        {% endif %}
+                        <div class="featured-card-gradient"></div>
+                        {% if game.total_rating or game.igdb_rating or game.aggregated_rating %}
+                        <div class="featured-card-ratings" title="Total | User | Critic">
+                            {% if game.total_rating %}<span class="rating total">{{ game.total_rating|round|int }}</span>{% endif %}
+                            {% if game.igdb_rating %}<span class="rating user">{{ game.igdb_rating|round|int }}</span>{% endif %}
+                            {% if game.aggregated_rating %}<span class="rating critic">{{ game.aggregated_rating|round|int }}</span>{% endif %}
+                        </div>
+                        {% endif %}
+                    </div>
+                    <div class="featured-card-content">
+                        <h3 class="featured-card-title">{{ game.name }}</h3>
+                        {% if genres %}
+                        <div class="featured-card-genres">
+                            {% for genre in genres[:2] %}
+                            <span class="featured-card-genre">{{ genre }}</span>
+                            {% endfor %}
+                        </div>
+                        {% endif %}
+                        {% set desc = game.igdb_summary or game.description %}
+                        {% if desc %}
+                        <p class="featured-card-desc">{{ desc }}</p>
+                        {% endif %}
+                    </div>
+                    {% if screenshots|length > 1 %}
+                    <div class="featured-card-screenshots">
+                        {% for ss in screenshots[1:4] %}
+                        <img src="{{ ss }}" alt="Screenshot" class="featured-card-screenshot" data-index="{{ loop.index }}">
+                        {% endfor %}
+                    </div>
+                    {% endif %}
+                </div>
+                {% endfor %}
+                </div>
+                <button class="scroll-btn scroll-btn-right" onclick="scrollRow(this, 1)">&rsaquo;</button>
+            </div>
+        </section>
+        {% endif %}
+
+        {% if random_picks %}
+        <section class="game-section">
+            <div class="section-header">
+                <h2 class="section-title">
+                    <span class="section-title-icon">?</span>
+                    Random Picks
+                </h2>
+            </div>
+            <div class="game-row-container">
+                <button class="scroll-btn scroll-btn-left" onclick="scrollRow(this, -1)">&lsaquo;</button>
+                <div class="game-row">
+                {% for game in random_picks %}
+                {% set screenshots = parse_json(game.igdb_screenshots) %}
+                {% set genres = parse_json(game.genres) %}
+                {% set cover = game.igdb_cover_url or game.cover_image %}
+                {% set bg = screenshots[0] if screenshots else cover %}
+                <div class="featured-card" data-game-id="{{ game.id }}" onclick="openExpandedCardFromEvent(event, this)">
+                    <div class="featured-card-media">
+                        {% if bg %}
+                        <img src="{{ bg }}" alt="" class="featured-card-bg" loading="lazy">
+                        {% endif %}
+                        <div class="featured-card-gradient"></div>
+                        {% if game.total_rating or game.igdb_rating or game.aggregated_rating %}
+                        <div class="featured-card-ratings" title="Total | User | Critic">
+                            {% if game.total_rating %}<span class="rating total">{{ game.total_rating|round|int }}</span>{% endif %}
+                            {% if game.igdb_rating %}<span class="rating user">{{ game.igdb_rating|round|int }}</span>{% endif %}
+                            {% if game.aggregated_rating %}<span class="rating critic">{{ game.aggregated_rating|round|int }}</span>{% endif %}
+                        </div>
+                        {% endif %}
+                    </div>
+                    <div class="featured-card-content">
+                        <h3 class="featured-card-title">{{ game.name }}</h3>
+                        {% if genres %}
+                        <div class="featured-card-genres">
+                            {% for genre in genres[:2] %}
+                            <span class="featured-card-genre">{{ genre }}</span>
+                            {% endfor %}
+                        </div>
+                        {% endif %}
+                        {% set desc = game.igdb_summary or game.description %}
+                        {% if desc %}
+                        <p class="featured-card-desc">{{ desc }}</p>
+                        {% endif %}
+                    </div>
+                    {% if screenshots|length > 1 %}
+                    <div class="featured-card-screenshots">
+                        {% for ss in screenshots[1:4] %}
+                        <img src="{{ ss }}" alt="Screenshot" class="featured-card-screenshot" data-index="{{ loop.index }}">
+                        {% endfor %}
+                    </div>
+                    {% endif %}
+                </div>
+                {% endfor %}
+                </div>
+                <button class="scroll-btn scroll-btn-right" onclick="scrollRow(this, 1)">&rsaquo;</button>
+            </div>
+        </section>
+        {% endif %}
+
+        {% if not featured_games and not highly_rated and not most_played %}
+        <div class="empty-state">
+            <div class="empty-state-icon">?</div>
+            <h2 class="empty-state-title">No games to discover yet</h2>
+            <p class="empty-state-desc">Sync your library with IGDB to see your games showcased here.</p>
+            <a href="/settings" class="btn btn-primary">Go to Settings</a>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- Expanded Card Overlay -->
+    <div id="expanded-overlay" class="expanded-card-overlay" onclick="closeExpandedCard(event)">
+        <div class="expanded-card" onclick="event.stopPropagation()">
+            <button class="expanded-card-close" onclick="closeExpandedCard()">&times;</button>
+            <div class="expanded-card-hero">
+                <img id="expanded-bg" src="" alt="" class="expanded-card-hero-bg">
+                <div class="expanded-card-hero-gradient"></div>
+                <div class="expanded-card-hero-content">
+                    <img id="expanded-cover" src="" alt="" class="expanded-card-cover">
+                    <div class="expanded-card-header">
+                        <h2 id="expanded-title" class="expanded-card-title"></h2>
+                        <div id="expanded-ratings" class="expanded-card-ratings"></div>
+                    </div>
+                </div>
+            </div>
+            <div class="expanded-card-body">
+                <div id="expanded-genres" class="expanded-card-genres"></div>
+                <p id="expanded-description" class="expanded-card-description"></p>
+                <h3 class="expanded-card-section-title">Screenshots</h3>
+                <div id="expanded-screenshots" class="expanded-card-screenshots"></div>
+            </div>
+            <div class="expanded-card-actions">
+                <a id="expanded-link" href="#" class="btn btn-primary">View Full Details</a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Screenshot Lightbox -->
+    <div id="lightbox" class="lightbox" onclick="closeLightbox()">
+        <div class="lightbox-content" onclick="event.stopPropagation()">
+            <button class="lightbox-close" onclick="closeLightbox()">&times;</button>
+            <button class="lightbox-nav lightbox-prev" onclick="prevScreenshot()">&lsaquo;</button>
+            <img id="lightbox-img" src="" alt="Screenshot" class="lightbox-img">
+            <button class="lightbox-nav lightbox-next" onclick="nextScreenshot()">&rsaquo;</button>
+            <div id="lightbox-counter" class="lightbox-counter"></div>
+        </div>
+    </div>
+
+    <script>
+        // Game data store - maps game ID to game object
+        const gameDataStore = {
+            {% for game in featured_games %}
+            {{ game.id }}: {
+                id: {{ game.id }},
+                name: {{ game.name|tojson }},
+                igdb_cover_url: {{ (game.igdb_cover_url or '')|tojson }},
+                cover_image: {{ (game.cover_image or '')|tojson }},
+                igdb_summary: {{ (game.igdb_summary or '')|tojson }},
+                description: {{ (game.description or '')|tojson }},
+                igdb_screenshots: {{ (game.igdb_screenshots or '[]')|safe }},
+                genres: {{ (game.genres or '[]')|safe }},
+                total_rating: {{ game.total_rating or 'null' }},
+                igdb_rating: {{ game.igdb_rating or 'null' }},
+                aggregated_rating: {{ game.aggregated_rating or 'null' }},
+                playtime_hours: {{ game.playtime_hours or 'null' }}
+            },
+            {% endfor %}
+            {% for game in highly_rated %}
+            {{ game.id }}: {
+                id: {{ game.id }},
+                name: {{ game.name|tojson }},
+                igdb_cover_url: {{ (game.igdb_cover_url or '')|tojson }},
+                cover_image: {{ (game.cover_image or '')|tojson }},
+                igdb_summary: {{ (game.igdb_summary or '')|tojson }},
+                description: {{ (game.description or '')|tojson }},
+                igdb_screenshots: {{ (game.igdb_screenshots or '[]')|safe }},
+                genres: {{ (game.genres or '[]')|safe }},
+                total_rating: {{ game.total_rating or 'null' }},
+                igdb_rating: {{ game.igdb_rating or 'null' }},
+                aggregated_rating: {{ game.aggregated_rating or 'null' }},
+                playtime_hours: {{ game.playtime_hours or 'null' }}
+            },
+            {% endfor %}
+            {% for game in most_played %}
+            {{ game.id }}: {
+                id: {{ game.id }},
+                name: {{ game.name|tojson }},
+                igdb_cover_url: {{ (game.igdb_cover_url or '')|tojson }},
+                cover_image: {{ (game.cover_image or '')|tojson }},
+                igdb_summary: {{ (game.igdb_summary or '')|tojson }},
+                description: {{ (game.description or '')|tojson }},
+                igdb_screenshots: {{ (game.igdb_screenshots or '[]')|safe }},
+                genres: {{ (game.genres or '[]')|safe }},
+                total_rating: {{ game.total_rating or 'null' }},
+                igdb_rating: {{ game.igdb_rating or 'null' }},
+                aggregated_rating: {{ game.aggregated_rating or 'null' }},
+                playtime_hours: {{ game.playtime_hours or 'null' }}
+            },
+            {% endfor %}
+            {% for game in critic_favorites %}
+            {{ game.id }}: {
+                id: {{ game.id }},
+                name: {{ game.name|tojson }},
+                igdb_cover_url: {{ (game.igdb_cover_url or '')|tojson }},
+                cover_image: {{ (game.cover_image or '')|tojson }},
+                igdb_summary: {{ (game.igdb_summary or '')|tojson }},
+                description: {{ (game.description or '')|tojson }},
+                igdb_screenshots: {{ (game.igdb_screenshots or '[]')|safe }},
+                genres: {{ (game.genres or '[]')|safe }},
+                total_rating: {{ game.total_rating or 'null' }},
+                igdb_rating: {{ game.igdb_rating or 'null' }},
+                aggregated_rating: {{ game.aggregated_rating or 'null' }},
+                playtime_hours: {{ game.playtime_hours or 'null' }}
+            },
+            {% endfor %}
+            {% for game in hidden_gems %}
+            {{ game.id }}: {
+                id: {{ game.id }},
+                name: {{ game.name|tojson }},
+                igdb_cover_url: {{ (game.igdb_cover_url or '')|tojson }},
+                cover_image: {{ (game.cover_image or '')|tojson }},
+                igdb_summary: {{ (game.igdb_summary or '')|tojson }},
+                description: {{ (game.description or '')|tojson }},
+                igdb_screenshots: {{ (game.igdb_screenshots or '[]')|safe }},
+                genres: {{ (game.genres or '[]')|safe }},
+                total_rating: {{ game.total_rating or 'null' }},
+                igdb_rating: {{ game.igdb_rating or 'null' }},
+                aggregated_rating: {{ game.aggregated_rating or 'null' }},
+                playtime_hours: {{ game.playtime_hours or 'null' }}
+            },
+            {% endfor %}
+            {% for game in random_picks %}
+            {{ game.id }}: {
+                id: {{ game.id }},
+                name: {{ game.name|tojson }},
+                igdb_cover_url: {{ (game.igdb_cover_url or '')|tojson }},
+                cover_image: {{ (game.cover_image or '')|tojson }},
+                igdb_summary: {{ (game.igdb_summary or '')|tojson }},
+                description: {{ (game.description or '')|tojson }},
+                igdb_screenshots: {{ (game.igdb_screenshots or '[]')|safe }},
+                genres: {{ (game.genres or '[]')|safe }},
+                total_rating: {{ game.total_rating or 'null' }},
+                igdb_rating: {{ game.igdb_rating or 'null' }},
+                aggregated_rating: {{ game.aggregated_rating or 'null' }},
+                playtime_hours: {{ game.playtime_hours or 'null' }}
+            },
+            {% endfor %}
+        };
+
+        // Horizontal Scroll Functions
+        function scrollRow(button, direction) {
+            const container = button.parentElement;
+            const row = container.querySelector('.game-row');
+            const cardWidth = row.querySelector('.game-card, .featured-card')?.offsetWidth || 220;
+            const scrollAmount = (cardWidth + 20) * 2; // Scroll 2 cards at a time
+
+            row.scrollBy({
+                left: direction * scrollAmount,
+                behavior: 'smooth'
+            });
+
+            // Update button states after scroll
+            setTimeout(() => updateScrollButtons(container), 300);
+        }
+
+        function updateScrollButtons(container) {
+            const row = container.querySelector('.game-row');
+            const leftBtn = container.querySelector('.scroll-btn-left');
+            const rightBtn = container.querySelector('.scroll-btn-right');
+
+            if (leftBtn) {
+                leftBtn.classList.toggle('disabled', row.scrollLeft <= 0);
+            }
+            if (rightBtn) {
+                const maxScroll = row.scrollWidth - row.clientWidth;
+                rightBtn.classList.toggle('disabled', row.scrollLeft >= maxScroll - 5);
+            }
+        }
+
+        // Initialize scroll buttons on load
+        document.addEventListener('DOMContentLoaded', function() {
+            document.querySelectorAll('.game-row-container').forEach(container => {
+                updateScrollButtons(container);
+
+                const row = container.querySelector('.game-row');
+                row.addEventListener('scroll', () => updateScrollButtons(container));
+            });
+        });
+
+        // Expanded Card Functions
+        let currentGame = null;
+
+        function openExpandedCardFromEvent(e, element) {
+            const gameId = parseInt(element.dataset.gameId, 10);
+            const game = gameDataStore[gameId];
+            if (game) {
+                openExpandedCard(game);
+            }
+        }
+
+        function openExpandedCard(game) {
+            currentGame = game;
+            const overlay = document.getElementById('expanded-overlay');
+            const screenshots = game.igdb_screenshots || [];
+            const genres = game.genres || [];
+            const cover = game.igdb_cover_url || game.cover_image || '';
+            const bg = screenshots[0] || cover;
+            const desc = game.igdb_summary || game.description || 'No description available.';
+
+            document.getElementById('expanded-bg').src = bg ? bg.replace('t_screenshot_big', 't_1080p') : '';
+            document.getElementById('expanded-cover').src = cover;
+            document.getElementById('expanded-title').textContent = game.name;
+            document.getElementById('expanded-description').textContent = desc;
+            document.getElementById('expanded-link').href = '/game/' + game.id;
+
+            // Ratings
+            let ratingsHtml = '';
+            if (game.total_rating) {
+                const ratingClass = game.total_rating >= 80 ? 'high' : 'medium';
+                ratingsHtml += `<div class="expanded-card-rating-item">
+                    <div class="expanded-card-rating-score ${ratingClass}">${Math.round(game.total_rating)}</div>
+                    <div class="expanded-card-rating-label">Overall</div>
+                </div>`;
+            }
+            if (game.igdb_rating) {
+                const ratingClass = game.igdb_rating >= 80 ? 'high' : 'medium';
+                ratingsHtml += `<div class="expanded-card-rating-item">
+                    <div class="expanded-card-rating-score ${ratingClass}">${Math.round(game.igdb_rating)}</div>
+                    <div class="expanded-card-rating-label">User</div>
+                </div>`;
+            }
+            if (game.aggregated_rating) {
+                const ratingClass = game.aggregated_rating >= 80 ? 'high' : 'medium';
+                ratingsHtml += `<div class="expanded-card-rating-item">
+                    <div class="expanded-card-rating-score ${ratingClass}">${Math.round(game.aggregated_rating)}</div>
+                    <div class="expanded-card-rating-label">Critic</div>
+                </div>`;
+            }
+            document.getElementById('expanded-ratings').innerHTML = ratingsHtml;
+
+            // Genres
+            let genresHtml = '';
+            genres.forEach(genre => {
+                genresHtml += `<span class="expanded-card-genre">${genre}</span>`;
+            });
+            document.getElementById('expanded-genres').innerHTML = genresHtml;
+
+            // Screenshots
+            let screenshotsHtml = '';
+            screenshots.forEach((ss, index) => {
+                const fullRes = ss.replace('t_screenshot_big', 't_1080p');
+                screenshotsHtml += `<img src="${ss}" alt="Screenshot ${index + 1}" class="expanded-card-screenshot" onclick="openLightbox(${JSON.stringify(screenshots)}, ${index})">`;
+            });
+            document.getElementById('expanded-screenshots').innerHTML = screenshotsHtml || '<p style="color: #666;">No screenshots available</p>';
+
+            overlay.classList.add('active');
+            document.body.style.overflow = 'hidden';
+        }
+
+        function closeExpandedCard(event) {
+            if (event && event.target !== document.getElementById('expanded-overlay')) return;
+            document.getElementById('expanded-overlay').classList.remove('active');
+            document.body.style.overflow = '';
+            currentGame = null;
+        }
+
+        // Lightbox Functions
+        let currentScreenshots = [];
+        let currentScreenshotIndex = 0;
+
+        // Event delegation for screenshot clicks
+        document.addEventListener('click', function(e) {
+            const screenshot = e.target.closest('.featured-card-screenshot');
+            if (screenshot) {
+                e.stopPropagation();
+                e.preventDefault();
+
+                // Get the parent card which has the game ID
+                const card = screenshot.closest('.featured-card');
+                if (card && card.dataset.gameId) {
+                    const gameId = parseInt(card.dataset.gameId, 10);
+                    const game = gameDataStore[gameId];
+                    if (game) {
+                        const screenshots = game.igdb_screenshots || [];
+                        const index = parseInt(screenshot.dataset.index, 10);
+                        openLightbox(screenshots, index);
+                    }
+                }
+            }
+        });
+
+        function openLightbox(screenshots, index) {
+            currentScreenshots = screenshots.map(ss => ss.replace('t_screenshot_big', 't_1080p'));
+            currentScreenshotIndex = index;
+            updateLightbox();
+            document.getElementById('lightbox').classList.add('active');
+            document.body.style.overflow = 'hidden';
+        }
+
+        function closeLightbox() {
+            document.getElementById('lightbox').classList.remove('active');
+            if (!document.getElementById('expanded-overlay').classList.contains('active')) {
+                document.body.style.overflow = '';
+            }
+        }
+
+        function updateLightbox() {
+            document.getElementById('lightbox-img').src = currentScreenshots[currentScreenshotIndex];
+            document.getElementById('lightbox-counter').textContent = `${currentScreenshotIndex + 1} / ${currentScreenshots.length}`;
+        }
+
+        function nextScreenshot() {
+            currentScreenshotIndex = (currentScreenshotIndex + 1) % currentScreenshots.length;
+            updateLightbox();
+        }
+
+        function prevScreenshot() {
+            currentScreenshotIndex = (currentScreenshotIndex - 1 + currentScreenshots.length) % currentScreenshots.length;
+            updateLightbox();
+        }
+
+        // Keyboard navigation
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape') {
+                if (document.getElementById('lightbox').classList.contains('active')) {
+                    closeLightbox();
+                } else if (document.getElementById('expanded-overlay').classList.contains('active')) {
+                    closeExpandedCard();
+                }
+            }
+            if (document.getElementById('lightbox').classList.contains('active')) {
+                if (e.key === 'ArrowRight') nextScreenshot();
+                if (e.key === 'ArrowLeft') prevScreenshot();
+            }
+        });
+    </script>
+</body>
+</html>

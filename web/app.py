@@ -154,6 +154,25 @@ def game_detail(game_id):
     )
 
 
+@app.route("/random")
+def random_game():
+    """Redirect to a random game detail page."""
+    conn = get_db()
+    cursor = conn.cursor()
+
+    # Get a random game that isn't hidden
+    cursor.execute(
+        "SELECT id FROM games WHERE 1=1" + EXCLUDE_HIDDEN_FILTER + " ORDER BY RANDOM() LIMIT 1"
+    )
+    result = cursor.fetchone()
+    conn.close()
+
+    if result:
+        return redirect(url_for('game_detail', game_id=result['id']))
+    else:
+        return redirect(url_for('index'))
+
+
 @app.route("/api/games")
 def api_games():
     """API endpoint for games."""
@@ -374,6 +393,144 @@ def hidden_games():
         "hidden_games.html",
         games=games,
         current_search=search,
+        parse_json=parse_json_field
+    )
+
+
+@app.route("/discover")
+def discover():
+    """Discover page - showcase popular games from your library."""
+    conn = get_db()
+    cursor = conn.cursor()
+
+    # Get all games with IGDB IDs from the library (excluding hidden/duplicates)
+    cursor.execute(
+        """SELECT id, name, store, igdb_id, igdb_cover_url, cover_image,
+                  igdb_summary, description, igdb_screenshots, total_rating,
+                  igdb_rating, aggregated_rating, genres, playtime_hours
+           FROM games
+           WHERE igdb_id IS NOT NULL""" + EXCLUDE_HIDDEN_FILTER + """
+           ORDER BY total_rating DESC NULLS LAST"""
+    )
+    library_games = cursor.fetchall()
+
+    # Create a mapping of igdb_id to local game data
+    igdb_to_local = {}
+    igdb_ids = []
+    for game in library_games:
+        igdb_id = game["igdb_id"]
+        igdb_ids.append(igdb_id)
+        igdb_to_local[igdb_id] = dict(game)
+
+    # Try to get popularity data from IGDB
+    popular_games = []
+    popularity_source = "rating"  # Default fallback
+
+    if igdb_ids:
+        try:
+            client = IGDBClient()
+
+            # Try to fetch popularity primitives for our library games
+            popularity_data = client.get_popular_games(igdb_ids, limit=100)
+
+            if popularity_data:
+                popularity_source = "igdb_popularity"
+                # Sort by popularity value and get top games
+                seen_ids = set()
+                for pop in popularity_data:
+                    game_id = pop.get("game_id")
+                    if game_id in igdb_to_local and game_id not in seen_ids:
+                        game_data = igdb_to_local[game_id].copy()
+                        game_data["popularity_value"] = pop.get("value", 0)
+                        popular_games.append(game_data)
+                        seen_ids.add(game_id)
+
+        except Exception as e:
+            print(f"Could not fetch IGDB popularity data: {e}")
+
+    # Fallback: use total_rating if no popularity data
+    if not popular_games:
+        popularity_source = "rating"
+        popular_games = [dict(g) for g in library_games if g["total_rating"]]
+
+    # Limit to top games for display
+    featured_games = popular_games[:20] if popular_games else []
+
+    # Get some category breakdowns
+    # Highly rated games (90+)
+    cursor.execute(
+        """SELECT id, name, store, igdb_id, igdb_cover_url, cover_image,
+                  igdb_summary, description, igdb_screenshots, total_rating,
+                  igdb_rating, aggregated_rating, genres, playtime_hours
+           FROM games
+           WHERE igdb_id IS NOT NULL AND total_rating >= 90""" + EXCLUDE_HIDDEN_FILTER + """
+           ORDER BY total_rating DESC
+           LIMIT 10"""
+    )
+    highly_rated = [dict(g) for g in cursor.fetchall()]
+
+    # Hidden gems (good ratings but less known - lower rating count approximated by using aggregated_rating)
+    cursor.execute(
+        """SELECT id, name, store, igdb_id, igdb_cover_url, cover_image,
+                  igdb_summary, description, igdb_screenshots, total_rating,
+                  igdb_rating, aggregated_rating, genres, playtime_hours
+           FROM games
+           WHERE igdb_id IS NOT NULL
+             AND total_rating >= 75
+             AND total_rating < 90
+             AND aggregated_rating IS NULL""" + EXCLUDE_HIDDEN_FILTER + """
+           ORDER BY igdb_rating DESC NULLS LAST
+           LIMIT 10"""
+    )
+    hidden_gems = [dict(g) for g in cursor.fetchall()]
+
+    # Most played (from Steam playtime)
+    cursor.execute(
+        """SELECT id, name, store, igdb_id, igdb_cover_url, cover_image,
+                  igdb_summary, description, igdb_screenshots, total_rating,
+                  igdb_rating, aggregated_rating, genres, playtime_hours
+           FROM games
+           WHERE igdb_id IS NOT NULL AND playtime_hours > 0""" + EXCLUDE_HIDDEN_FILTER + """
+           ORDER BY playtime_hours DESC
+           LIMIT 10"""
+    )
+    most_played = [dict(g) for g in cursor.fetchall()]
+
+    # Critic favorites (high aggregated rating)
+    cursor.execute(
+        """SELECT id, name, store, igdb_id, igdb_cover_url, cover_image,
+                  igdb_summary, description, igdb_screenshots, total_rating,
+                  igdb_rating, aggregated_rating, genres, playtime_hours
+           FROM games
+           WHERE igdb_id IS NOT NULL AND aggregated_rating >= 80""" + EXCLUDE_HIDDEN_FILTER + """
+           ORDER BY aggregated_rating DESC
+           LIMIT 10"""
+    )
+    critic_favorites = [dict(g) for g in cursor.fetchall()]
+
+    # Random picks (10 random games with IGDB data)
+    cursor.execute(
+        """SELECT id, name, store, igdb_id, igdb_cover_url, cover_image,
+                  igdb_summary, description, igdb_screenshots, total_rating,
+                  igdb_rating, aggregated_rating, genres, playtime_hours
+           FROM games
+           WHERE igdb_id IS NOT NULL""" + EXCLUDE_HIDDEN_FILTER + """
+           ORDER BY RANDOM()
+           LIMIT 10"""
+    )
+    random_picks = [dict(g) for g in cursor.fetchall()]
+
+    conn.close()
+
+    return render_template(
+        "discover.html",
+        featured_games=featured_games,
+        highly_rated=highly_rated,
+        hidden_gems=hidden_gems,
+        most_played=most_played,
+        critic_favorites=critic_favorites,
+        random_picks=random_picks,
+        popularity_source=popularity_source,
         parse_json=parse_json_field
     )
 

@@ -118,6 +118,65 @@ class IGDBClient:
         results = self._request("games", body)
         return results[0] if results else None
 
+    def get_popularity_types(self):
+        """Get all available popularity types from IGDB."""
+        body = '''
+            fields id, name, created_at, updated_at;
+            limit 50;
+        '''
+        return self._request("popularity_types", body) or []
+
+    def get_popular_games(self, game_ids, popularity_type=None, limit=50):
+        """
+        Get popularity data for specific game IDs.
+
+        Args:
+            game_ids: List of IGDB game IDs to check
+            popularity_type: Optional popularity type ID to filter by
+            limit: Max results to return
+
+        Returns:
+            List of popularity primitives sorted by value (highest first)
+        """
+        if not game_ids:
+            return []
+
+        # Build the where clause
+        ids_str = ",".join(str(id) for id in game_ids)
+        where_clause = f"game_id = ({ids_str})"
+
+        if popularity_type:
+            where_clause += f" & popularity_type = {popularity_type}"
+
+        body = f'''
+            where {where_clause};
+            fields game_id, value, popularity_type, calculated_at;
+            sort value desc;
+            limit {limit};
+        '''
+
+        return self._request("popularity_primitives", body) or []
+
+    def get_games_by_ids(self, igdb_ids):
+        """Get multiple games by their IGDB IDs."""
+        if not igdb_ids:
+            return []
+
+        ids_str = ",".join(str(id) for id in igdb_ids)
+        body = f'''
+            where id = ({ids_str});
+            fields id, name, slug, rating, rating_count, aggregated_rating,
+                   aggregated_rating_count, total_rating, total_rating_count,
+                   summary, storyline, first_release_date,
+                   genres.name, themes.id, themes.name, platforms.name,
+                   involved_companies.company.name, involved_companies.developer,
+                   involved_companies.publisher,
+                   cover.url, screenshots.url, artworks.url, videos.video_id;
+            limit 500;
+        '''
+
+        return self._request("games", body) or []
+
     @staticmethod
     def is_nsfw(game_data):
         """Check if a game should be marked as NSFW based on IGDB data."""
