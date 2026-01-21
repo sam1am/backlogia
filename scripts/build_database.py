@@ -308,6 +308,56 @@ def import_itch_games(conn):
         return 0
 
 
+def import_humble_games(conn):
+    """Import games from Humble Bundle (requires session cookie)."""
+    print("Importing Humble Bundle library...")
+    cursor = conn.cursor()
+
+    try:
+        from humble import get_humble_library
+
+        games = get_humble_library()
+        if not games:
+            print("  No Humble Bundle games found or not authenticated")
+            print("  Set your Humble Bundle session cookie in Settings")
+            return 0
+
+        count = 0
+        for game in games:
+            try:
+                cursor.execute("""
+                    INSERT OR REPLACE INTO games (
+                        name, store, store_id, cover_image, icon,
+                        supported_platforms, publishers, release_date,
+                        extra_data, updated_at
+                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """, (
+                    game.get("human_name"),
+                    "humble",
+                    game.get("machine_name"),
+                    game.get("icon"),
+                    game.get("icon"),
+                    json.dumps(game.get("platforms", [])),
+                    json.dumps([game.get("payee")]) if game.get("payee") else None,
+                    game.get("created"),
+                    json.dumps(game),
+                    datetime.now().isoformat()
+                ))
+                count += 1
+            except Exception as e:
+                print(f"  Error importing {game.get('human_name')}: {e}")
+
+        conn.commit()
+        print(f"  Imported {count} Humble Bundle games")
+        return count
+    except ImportError:
+        print("  Humble Bundle module not available")
+        return 0
+    except Exception as e:
+        print(f"  Humble Bundle import error: {e}")
+        return 0
+
+
 def get_stats(conn):
     """Get database statistics."""
     cursor = conn.cursor()
@@ -332,6 +382,7 @@ def main():
     epic_count = import_epic_games(conn)
     gog_count = import_gog_games(conn)
     itch_count = import_itch_games(conn)
+    humble_count = import_humble_games(conn)
 
     print("=" * 60)
     stats = get_stats(conn)

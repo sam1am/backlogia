@@ -13,6 +13,7 @@ STEAM_API_KEY = "steam_api_key"
 IGDB_CLIENT_ID = "igdb_client_id"
 IGDB_CLIENT_SECRET = "igdb_client_secret"
 ITCH_API_KEY = "itch_api_key"
+HUMBLE_SESSION_COOKIE = "humble_session_cookie"
 
 
 def _ensure_settings_table(conn):
@@ -99,4 +100,11 @@ def get_itch_credentials():
     """Get itch.io API credentials."""
     return {
         "api_key": get_setting(ITCH_API_KEY),
+    }
+
+
+def get_humble_credentials():
+    """Get Humble Bundle credentials."""
+    return {
+        "session_cookie": get_setting(HUMBLE_SESSION_COOKIE),
     }

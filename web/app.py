@@ -11,12 +11,13 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent.parent / "scripts"))
 from settings import (
     get_setting, set_setting, get_all_settings,
-    STEAM_ID, STEAM_API_KEY, IGDB_CLIENT_ID, IGDB_CLIENT_SECRET, ITCH_API_KEY
+    STEAM_ID, STEAM_API_KEY, IGDB_CLIENT_ID, IGDB_CLIENT_SECRET, ITCH_API_KEY,
+    HUMBLE_SESSION_COOKIE
 )
 from igdb_sync import IGDBClient, sync_games as igdb_sync_games, add_igdb_columns
 from build_database import (
     create_database, import_steam_games, import_epic_games,
-    import_gog_games, import_itch_games
+    import_gog_games, import_itch_games, import_humble_games
 )
 
 app = Flask(__name__)
@@ -89,6 +90,17 @@ def get_store_url(store, store_id, extra_data=None):
             try:
                 data = json.loads(extra_data) if isinstance(extra_data, str) else extra_data
                 return data.get("url")
+            except (json.JSONDecodeError, TypeError):
+                pass
+        return None
+    elif store == "humble":
+        # Humble Bundle URLs - link to downloads page with gamekey
+        if extra_data:
+            try:
+                data = json.loads(extra_data) if isinstance(extra_data, str) else extra_data
+                gamekey = data.get("gamekey")
+                if gamekey:
+                    return f"https://www.humblebundle.com/downloads?key={gamekey}"
             except (json.JSONDecodeError, TypeError):
                 pass
         return None
@@ -671,6 +683,7 @@ def settings_page():
         "igdb_client_id": get_setting(IGDB_CLIENT_ID, ""),
         "igdb_client_secret": get_setting(IGDB_CLIENT_SECRET, ""),
         "itch_api_key": get_setting(ITCH_API_KEY, ""),
+        "humble_session_cookie": get_setting(HUMBLE_SESSION_COOKIE, ""),
     }
     success = request.args.get("success") == "1"
 
@@ -693,6 +706,7 @@ def save_settings():
     set_setting(IGDB_CLIENT_ID, request.form.get("igdb_client_id", "").strip())
     set_setting(IGDB_CLIENT_SECRET, request.form.get("igdb_client_secret", "").strip())
     set_setting(ITCH_API_KEY, request.form.get("itch_api_key", "").strip())
+    set_setting(HUMBLE_SESSION_COOKIE, request.form.get("humble_session_cookie", "").strip())
 
     return redirect(url_for("settings_page", success=1))
 
@@ -719,6 +733,9 @@ def sync_store(store):
 
         if store == "itch" or store == "all":
             results["itch"] = import_itch_games(conn)
+
+        if store == "humble" or store == "all":
+            results["humble"] = import_humble_games(conn)
 
         conn.close()
 

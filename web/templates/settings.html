@@ -127,6 +127,7 @@
         .section-icon.itch { background: #fa5c5c; }
         .section-icon.epic { background: #0078f2; }
         .section-icon.gog { background: #86328a; }
+        .section-icon.humble { background: #cc3333; }
         .section-icon.sync { background: #4caf50; }
 
         .section-title {
@@ -302,6 +303,7 @@
         .sync-btn .icon.epic { background: #0078f2; }
         .sync-btn .icon.gog { background: #86328a; }
         .sync-btn .icon.itch { background: #fa5c5c; }
+        .sync-btn .icon.humble { background: #cc3333; }
         .sync-btn .icon.all { background: linear-gradient(90deg, #667eea, #764ba2); }
         .sync-btn .icon.igdb { background: #9147ff; }
 
@@ -490,6 +492,13 @@
                             <small>Import from itch.io</small>
                         </div>
                     </button>
+                    <button class="sync-btn" onclick="syncStore('humble')">
+                        <div class="icon humble">H</div>
+                        <div class="text">
+                            <span>Sync Humble</span>
+                            <small>Import from Humble Bundle</small>
+                        </div>
+                    </button>
                 </div>
             </div>
 
@@ -597,6 +606,25 @@
                        placeholder="Your itch.io API key">
                 <div class="help-text">
                     Get your API key at <a href="https://itch.io/user/settings/api-keys" target="_blank">itch.io/user/settings/api-keys</a>
+                </div>
+            </div>
+
+            <div class="section-header" style="margin-top: 30px;">
+                <div class="section-icon humble">H</div>
+                <div>
+                    <div class="section-title">Humble Bundle</div>
+                    <div class="section-description">Connect to your Humble Bundle library</div>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label for="humble_session_cookie">Humble Bundle Session Cookie</label>
+                <input type="password" id="humble_session_cookie" name="humble_session_cookie"
+                       value="{{ settings.humble_session_cookie }}"
+                       placeholder="_simpleauth_sess cookie value">
+                <div class="help-text">
+                    To get this cookie: Log in to <a href="https://www.humblebundle.com" target="_blank">humblebundle.com</a>,
+                    open Developer Tools (F12) → Application → Cookies → find <code>_simpleauth_sess</code> and copy its value
                 </div>
             </div>
 
