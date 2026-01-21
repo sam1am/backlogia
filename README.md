@@ -22,6 +22,8 @@ Stop jumping between Steam, Epic, GOG, and a dozen other launchers just to see w
   <strong>Steam</strong> &nbsp;•&nbsp; <strong>Epic Games</strong> &nbsp;•&nbsp; <strong>GOG</strong> &nbsp;•&nbsp; <strong>itch.io</strong> &nbsp;•&nbsp; <strong>Humble Bundle</strong>
 </p>
 
+Please vote for which stores you would like to see supported next [here](https://github.com/sam1am/backlogia/discussions/1).
+
 ---
 
 ## Features
