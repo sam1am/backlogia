@@ -172,6 +172,62 @@
             color: white;
         }
 
+        .store-badges {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+
+        .store-link {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 12px 16px;
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 8px;
+            text-decoration: none;
+            color: inherit;
+            transition: background 0.2s, transform 0.1s;
+        }
+
+        .store-link:hover {
+            background: rgba(255, 255, 255, 0.1);
+            transform: translateX(4px);
+        }
+
+        .store-link-icon {
+            width: 32px;
+            height: 32px;
+            object-fit: contain;
+        }
+
+        .store-link-info {
+            flex: 1;
+        }
+
+        .store-link-name {
+            font-weight: 600;
+            color: #e4e4e4;
+            text-transform: capitalize;
+        }
+
+        .store-link-meta {
+            font-size: 0.8rem;
+            color: #888;
+            margin-top: 2px;
+        }
+
+        .store-link-arrow {
+            color: #667eea;
+            font-size: 1.2rem;
+        }
+
+        .owned-stores-list {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
         .meta-item {
             display: flex;
             align-items: center;
@@ -760,9 +816,14 @@
             <div class="hero-info">
                 <h1>{{ game.name or 'Unknown Game' }}</h1>
                 <div class="hero-meta">
-                    <span class="store-badge {{ game.store }}">{{ game.store }}</span>
-                    {% if game.playtime_hours %}
-                    <span class="meta-item">🕐 {{ game.playtime_hours }} hours played</span>
+                    <div class="store-badges">
+                        {% for info in store_info %}
+                        <span class="store-badge {{ info.store }}">{{ info.store }}</span>
+                        {% endfor %}
+                    </div>
+                    {% set total_playtime = store_info|selectattr('playtime_hours')|map(attribute='playtime_hours')|sum %}
+                    {% if total_playtime %}
+                    <span class="meta-item">🕐 {{ total_playtime|round(1) }} hours played</span>
                     {% endif %}
                     {% if game.critics_score %}
                     <span class="meta-item">⭐ {{ game.critics_score|round(1) }} / 100</span>
@@ -848,11 +909,6 @@
                         </li>
                         {% endif %}
 
-                        <li>
-                            <span class="info-label">Store ID</span>
-                            <span class="info-value">{{ game.store_id or 'N/A' }}</span>
-                        </li>
-
                         {% if game.can_run_offline is not none %}
                         <li>
                             <span class="info-label">Offline Play</span>
@@ -860,6 +916,37 @@
                         </li>
                         {% endif %}
                     </ul>
+                </div>
+
+                {% set store_icons = {'steam': 'steam-24.png', 'epic': 'epic-64.png', 'gog': 'gog-48.png', 'itch': 'itch-64.png'} %}
+                <div class="section">
+                    <h2>Owned On</h2>
+                    <div class="owned-stores-list">
+                        {% for info in store_info %}
+                        {% if info.store_url %}
+                        <a href="{{ info.store_url }}" target="_blank" rel="noopener" class="store-link">
+                            <img src="/static/images/{{ store_icons.get(info.store, 'steam-24.png') }}" alt="{{ info.store }}" class="store-link-icon">
+                            <div class="store-link-info">
+                                <div class="store-link-name">{{ info.store }}</div>
+                                <div class="store-link-meta">
+                                    {% if info.playtime_hours %}{{ info.playtime_hours|round(1) }} hrs played{% else %}View in store{% endif %}
+                                </div>
+                            </div>
+                            <span class="store-link-arrow">→</span>
+                        </a>
+                        {% else %}
+                        <div class="store-link" style="cursor: default;">
+                            <img src="/static/images/{{ store_icons.get(info.store, 'steam-24.png') }}" alt="{{ info.store }}" class="store-link-icon">
+                            <div class="store-link-info">
+                                <div class="store-link-name">{{ info.store }}</div>
+                                <div class="store-link-meta">
+                                    {% if info.playtime_hours %}{{ info.playtime_hours|round(1) }} hrs played{% else %}Owned{% endif %}
+                                </div>
+                            </div>
+                        </div>
+                        {% endif %}
+                        {% endfor %}
+                    </div>
                 </div>
 
                 {% if game.total_rating or game.igdb_rating or game.aggregated_rating %}

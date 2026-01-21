@@ -70,6 +70,70 @@ def parse_json_field(value):
         return []
 
 
+def get_store_url(store, store_id, extra_data=None):
+    """Generate the store URL for a game."""
+    if not store_id:
+        return None
+
+    if store == "steam":
+        return f"https://store.steampowered.com/app/{store_id}"
+    elif store == "epic":
+        # Epic URLs use the app_name slug
+        return f"https://store.epicgames.com/en-US/p/{store_id}"
+    elif store == "gog":
+        # GOG URLs use the product ID
+        return f"https://www.gog.com/en/game/{store_id}"
+    elif store == "itch":
+        # Itch URLs are stored in extra_data
+        if extra_data:
+            try:
+                data = json.loads(extra_data) if isinstance(extra_data, str) else extra_data
+                return data.get("url")
+            except (json.JSONDecodeError, TypeError):
+                pass
+        return None
+    return None
+
+
+def group_games_by_igdb(games):
+    """Group games by IGDB ID, keeping separate entries for games without IGDB match."""
+    grouped = {}
+    no_igdb_games = []
+
+    for game in games:
+        game_dict = dict(game)
+        igdb_id = game_dict.get("igdb_id")
+
+        if igdb_id:
+            if igdb_id not in grouped:
+                grouped[igdb_id] = {
+                    "primary": game_dict,
+                    "stores": [game_dict["store"]],
+                    "game_ids": [game_dict["id"]],
+                    "store_data": {game_dict["store"]: game_dict}
+                }
+            else:
+                grouped[igdb_id]["stores"].append(game_dict["store"])
+                grouped[igdb_id]["game_ids"].append(game_dict["id"])
+                grouped[igdb_id]["store_data"][game_dict["store"]] = game_dict
+                # Use the one with more data as primary (prefer one with playtime or better cover)
+                current_primary = grouped[igdb_id]["primary"]
+                if (game_dict.get("playtime_hours") and not current_primary.get("playtime_hours")) or \
+                   (game_dict.get("igdb_cover_url") and not current_primary.get("igdb_cover_url")):
+                    grouped[igdb_id]["primary"] = game_dict
+        else:
+            no_igdb_games.append({
+                "primary": game_dict,
+                "stores": [game_dict["store"]],
+                "game_ids": [game_dict["id"]],
+                "store_data": {game_dict["store"]: game_dict}
+            })
+
+    # Convert grouped dict to list and add non-IGDB games
+    result = list(grouped.values()) + no_igdb_games
+    return result
+
+
 @app.route("/")
 def index():
     """Main page - list all games."""
@@ -106,12 +170,31 @@ def index():
     cursor.execute(query, params)
     games = cursor.fetchall()
 
+    # Group games by IGDB ID (combines multi-store ownership)
+    grouped_games = group_games_by_igdb(games)
+
+    # Sort grouped games by primary game's sort field
+    def get_sort_key(g):
+        primary = g["primary"]
+        val = primary.get(sort_by)
+        if val is None:
+            return (1, "")  # Put nulls last
+        if isinstance(val, str):
+            return (0, val.lower())
+        return (0, val)
+
+    reverse = sort_order == "desc"
+    grouped_games.sort(key=get_sort_key, reverse=reverse)
+
     # Get store counts for filters (exclude duplicates and hidden)
     cursor.execute("SELECT store, COUNT(*) FROM games WHERE 1=1" + EXCLUDE_HIDDEN_FILTER + " GROUP BY store")
     store_counts = dict(cursor.fetchall())
 
     cursor.execute("SELECT COUNT(*) FROM games WHERE 1=1" + EXCLUDE_HIDDEN_FILTER)
     total_count = cursor.fetchone()[0]
+
+    # Count unique games (grouped)
+    unique_count = len(grouped_games)
 
     # Get hidden count
     cursor.execute("SELECT COUNT(*) FROM games WHERE hidden = 1")
@@ -121,9 +204,10 @@ def index():
 
     return render_template(
         "index.html",
-        games=games,
+        games=grouped_games,
         store_counts=store_counts,
         total_count=total_count,
+        unique_count=unique_count,
         hidden_count=hidden_count,
         current_store=store_filter,
         current_search=search,
@@ -135,22 +219,59 @@ def index():
 
 @app.route("/game/<int:game_id>")
 def game_detail(game_id):
-    """Game detail page."""
+    """Game detail page - shows combined view for games owned on multiple stores."""
     conn = get_db()
     cursor = conn.cursor()
 
     cursor.execute("SELECT * FROM games WHERE id = ?", (game_id,))
     game = cursor.fetchone()
 
+    if not game:
+        conn.close()
+        return "Game not found", 404
+
+    game_dict = dict(game)
+
+    # Find all copies of this game across stores (by IGDB ID)
+    related_games = []
+    if game_dict.get("igdb_id"):
+        cursor.execute(
+            "SELECT * FROM games WHERE igdb_id = ? ORDER BY store",
+            (game_dict["igdb_id"],)
+        )
+        related_games = [dict(g) for g in cursor.fetchall()]
+    else:
+        related_games = [game_dict]
+
     conn.close()
 
-    if not game:
-        return "Game not found", 404
+    # Build store info with URLs for each copy
+    store_info = []
+    for g in related_games:
+        store_url = get_store_url(g["store"], g["store_id"], g.get("extra_data"))
+        store_info.append({
+            "store": g["store"],
+            "store_id": g["store_id"],
+            "store_url": store_url,
+            "game_id": g["id"],
+            "playtime_hours": g.get("playtime_hours"),
+        })
+
+    # Use the best game data as primary (prefer one with IGDB data, then playtime)
+    primary_game = game_dict
+    for g in related_games:
+        if g.get("igdb_cover_url") and not primary_game.get("igdb_cover_url"):
+            primary_game = g
+        elif g.get("playtime_hours") and not primary_game.get("playtime_hours"):
+            primary_game = g
 
     return render_template(
         "game_detail.html",
-        game=game,
-        parse_json=parse_json_field
+        game=primary_game,
+        store_info=store_info,
+        related_games=related_games,
+        parse_json=parse_json_field,
+        get_store_url=get_store_url
     )
 
 

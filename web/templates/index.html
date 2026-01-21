@@ -301,6 +301,17 @@
             object-fit: contain;
         }
 
+        .store-icons {
+            display: flex;
+            gap: 4px;
+            align-items: center;
+        }
+
+        .store-icons .store-icon {
+            width: 20px;
+            height: 20px;
+        }
+
         .playtime {
             color: #888;
         }
@@ -384,8 +395,12 @@
             <h1>Your Game Library</h1>
             <div class="stats">
                 <div class="stat">
+                    <div class="stat-value">{{ unique_count }}</div>
+                    <div class="stat-label">Unique Games</div>
+                </div>
+                <div class="stat">
                     <div class="stat-value">{{ total_count }}</div>
-                    <div class="stat-label">Total Games</div>
+                    <div class="stat-label">Total Copies</div>
                 </div>
                 {% for store, count in store_counts.items() %}
                 <div class="stat">
@@ -427,8 +442,9 @@
         {% if games %}
         {% set store_icons = {'steam': 'steam-24.png', 'epic': 'epic-64.png', 'gog': 'gog-48.png', 'itch': 'itch-64.png'} %}
         <div id="games-grid" class="games-grid size-medium">
-            {% for game in games %}
-            <a href="/game/{{ game.id }}" class="game-card">
+            {% for grouped_game in games %}
+            {% set game = grouped_game.primary %}
+            <a href="/game/{{ grouped_game.game_ids[0] }}" class="game-card">
                 {% set cover_url = game.igdb_cover_url or game.cover_image %}
                 {% if cover_url %}
                 <img src="{{ cover_url }}" alt="{{ game.name }}" class="game-cover" loading="lazy"
@@ -440,7 +456,11 @@
                 <div class="game-info">
                     <div class="game-title">{{ game.name or 'Unknown Game' }}</div>
                     <div class="game-meta">
-                        <img src="/static/images/{{ store_icons.get(game.store, 'steam-26.png') }}" alt="{{ game.store }}" class="store-icon" title="{{ game.store|capitalize }}">
+                        <div class="store-icons" title="Owned on: {{ grouped_game.stores|join(', ')|capitalize }}">
+                            {% for store in grouped_game.stores %}
+                            <img src="/static/images/{{ store_icons.get(store, 'steam-26.png') }}" alt="{{ store }}" class="store-icon">
+                            {% endfor %}
+                        </div>
                         {% if game.total_rating or game.igdb_rating or game.aggregated_rating %}
                         <div class="ratings-bar" title="Total | User | Critic">
                             {% if game.total_rating %}<span class="rating total">{{ game.total_rating|round|int }}</span>{% endif %}
