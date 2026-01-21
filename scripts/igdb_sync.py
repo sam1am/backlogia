@@ -15,6 +15,14 @@ DATABASE_PATH = Path(__file__).parent.parent / "game_library.db"
 TWITCH_TOKEN_URL = "https://id.twitch.tv/oauth2/token"
 IGDB_API_URL = "https://api.igdb.com/v4"
 
+# IGDB Popularity Type IDs (from /popularity_types endpoint)
+POPULARITY_TYPE_IGDB_VISITS = 1
+POPULARITY_TYPE_IGDB_WANT_TO_PLAY = 2
+POPULARITY_TYPE_IGDB_PLAYING = 3
+POPULARITY_TYPE_IGDB_PLAYED = 4
+POPULARITY_TYPE_STEAM_PEAK_24H = 5
+POPULARITY_TYPE_STEAM_POSITIVE_REVIEWS = 6
+
 
 class IGDBClient:
     def __init__(self):

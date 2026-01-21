@@ -990,6 +990,360 @@
         </section>
         {% endif %}
 
+        {% if igdb_visits %}
+        <section class="game-section">
+            <div class="section-header">
+                <h2 class="section-title">
+                    <span class="section-title-icon">*</span>
+                    Community Interest
+                </h2>
+            </div>
+            <div class="game-row-container">
+                <button class="scroll-btn scroll-btn-left" onclick="scrollRow(this, -1)">&lsaquo;</button>
+                <div class="game-row">
+                {% for game in igdb_visits %}
+                {% set screenshots = parse_json(game.igdb_screenshots) %}
+                {% set genres = parse_json(game.genres) %}
+                {% set cover = game.cover_url_override or game.igdb_cover_url or game.cover_image %}
+                {% set bg = screenshots[0] if screenshots else cover %}
+                <div class="featured-card" data-game-id="{{ game.id }}" onclick="openExpandedCardFromEvent(event, this)">
+                    <div class="featured-card-media">
+                        {% if bg %}
+                        <img src="{{ bg }}" alt="" class="featured-card-bg" loading="lazy">
+                        {% endif %}
+                        <div class="featured-card-gradient"></div>
+                        {% if game.total_rating or game.igdb_rating or game.aggregated_rating %}
+                        <div class="featured-card-ratings" title="Total | User | Critic">
+                            {% if game.total_rating %}<span class="rating total">{{ game.total_rating|round|int }}</span>{% endif %}
+                            {% if game.igdb_rating %}<span class="rating user">{{ game.igdb_rating|round|int }}</span>{% endif %}
+                            {% if game.aggregated_rating %}<span class="rating critic">{{ game.aggregated_rating|round|int }}</span>{% endif %}
+                        </div>
+                        {% endif %}
+                    </div>
+                    <div class="featured-card-content">
+                        <h3 class="featured-card-title">{{ game.name }}</h3>
+                        {% if genres %}
+                        <div class="featured-card-genres">
+                            {% for genre in genres[:2] %}
+                            <span class="featured-card-genre">{{ genre }}</span>
+                            {% endfor %}
+                        </div>
+                        {% endif %}
+                        {% set desc = game.igdb_summary or game.description %}
+                        {% if desc %}
+                        <p class="featured-card-desc">{{ desc }}</p>
+                        {% endif %}
+                    </div>
+                    {% if screenshots|length > 1 %}
+                    <div class="featured-card-screenshots">
+                        {% for ss in screenshots[1:4] %}
+                        <img src="{{ ss }}" alt="Screenshot" class="featured-card-screenshot" data-index="{{ loop.index }}">
+                        {% endfor %}
+                    </div>
+                    {% endif %}
+                </div>
+                {% endfor %}
+                </div>
+                <button class="scroll-btn scroll-btn-right" onclick="scrollRow(this, 1)">&rsaquo;</button>
+            </div>
+        </section>
+        {% endif %}
+
+        {% if want_to_play %}
+        <section class="game-section">
+            <div class="section-header">
+                <h2 class="section-title">
+                    <span class="section-title-icon">*</span>
+                    Community Want To Play
+                </h2>
+            </div>
+            <div class="game-row-container">
+                <button class="scroll-btn scroll-btn-left" onclick="scrollRow(this, -1)">&lsaquo;</button>
+                <div class="game-row">
+                {% for game in want_to_play %}
+                {% set screenshots = parse_json(game.igdb_screenshots) %}
+                {% set genres = parse_json(game.genres) %}
+                {% set cover = game.cover_url_override or game.igdb_cover_url or game.cover_image %}
+                {% set bg = screenshots[0] if screenshots else cover %}
+                <div class="featured-card" data-game-id="{{ game.id }}" onclick="openExpandedCardFromEvent(event, this)">
+                    <div class="featured-card-media">
+                        {% if bg %}
+                        <img src="{{ bg }}" alt="" class="featured-card-bg" loading="lazy">
+                        {% endif %}
+                        <div class="featured-card-gradient"></div>
+                        {% if game.total_rating or game.igdb_rating or game.aggregated_rating %}
+                        <div class="featured-card-ratings" title="Total | User | Critic">
+                            {% if game.total_rating %}<span class="rating total">{{ game.total_rating|round|int }}</span>{% endif %}
+                            {% if game.igdb_rating %}<span class="rating user">{{ game.igdb_rating|round|int }}</span>{% endif %}
+                            {% if game.aggregated_rating %}<span class="rating critic">{{ game.aggregated_rating|round|int }}</span>{% endif %}
+                        </div>
+                        {% endif %}
+                    </div>
+                    <div class="featured-card-content">
+                        <h3 class="featured-card-title">{{ game.name }}</h3>
+                        {% if genres %}
+                        <div class="featured-card-genres">
+                            {% for genre in genres[:2] %}
+                            <span class="featured-card-genre">{{ genre }}</span>
+                            {% endfor %}
+                        </div>
+                        {% endif %}
+                        {% set desc = game.igdb_summary or game.description %}
+                        {% if desc %}
+                        <p class="featured-card-desc">{{ desc }}</p>
+                        {% endif %}
+                    </div>
+                    {% if screenshots|length > 1 %}
+                    <div class="featured-card-screenshots">
+                        {% for ss in screenshots[1:4] %}
+                        <img src="{{ ss }}" alt="Screenshot" class="featured-card-screenshot" data-index="{{ loop.index }}">
+                        {% endfor %}
+                    </div>
+                    {% endif %}
+                </div>
+                {% endfor %}
+                </div>
+                <button class="scroll-btn scroll-btn-right" onclick="scrollRow(this, 1)">&rsaquo;</button>
+            </div>
+        </section>
+        {% endif %}
+
+        {% if playing %}
+        <section class="game-section">
+            <div class="section-header">
+                <h2 class="section-title">
+                    <span class="section-title-icon">*</span>
+                    Community Currently Playing
+                </h2>
+            </div>
+            <div class="game-row-container">
+                <button class="scroll-btn scroll-btn-left" onclick="scrollRow(this, -1)">&lsaquo;</button>
+                <div class="game-row">
+                {% for game in playing %}
+                {% set screenshots = parse_json(game.igdb_screenshots) %}
+                {% set genres = parse_json(game.genres) %}
+                {% set cover = game.cover_url_override or game.igdb_cover_url or game.cover_image %}
+                {% set bg = screenshots[0] if screenshots else cover %}
+                <div class="featured-card" data-game-id="{{ game.id }}" onclick="openExpandedCardFromEvent(event, this)">
+                    <div class="featured-card-media">
+                        {% if bg %}
+                        <img src="{{ bg }}" alt="" class="featured-card-bg" loading="lazy">
+                        {% endif %}
+                        <div class="featured-card-gradient"></div>
+                        {% if game.total_rating or game.igdb_rating or game.aggregated_rating %}
+                        <div class="featured-card-ratings" title="Total | User | Critic">
+                            {% if game.total_rating %}<span class="rating total">{{ game.total_rating|round|int }}</span>{% endif %}
+                            {% if game.igdb_rating %}<span class="rating user">{{ game.igdb_rating|round|int }}</span>{% endif %}
+                            {% if game.aggregated_rating %}<span class="rating critic">{{ game.aggregated_rating|round|int }}</span>{% endif %}
+                        </div>
+                        {% endif %}
+                    </div>
+                    <div class="featured-card-content">
+                        <h3 class="featured-card-title">{{ game.name }}</h3>
+                        {% if genres %}
+                        <div class="featured-card-genres">
+                            {% for genre in genres[:2] %}
+                            <span class="featured-card-genre">{{ genre }}</span>
+                            {% endfor %}
+                        </div>
+                        {% endif %}
+                        {% set desc = game.igdb_summary or game.description %}
+                        {% if desc %}
+                        <p class="featured-card-desc">{{ desc }}</p>
+                        {% endif %}
+                    </div>
+                    {% if screenshots|length > 1 %}
+                    <div class="featured-card-screenshots">
+                        {% for ss in screenshots[1:4] %}
+                        <img src="{{ ss }}" alt="Screenshot" class="featured-card-screenshot" data-index="{{ loop.index }}">
+                        {% endfor %}
+                    </div>
+                    {% endif %}
+                </div>
+                {% endfor %}
+                </div>
+                <button class="scroll-btn scroll-btn-right" onclick="scrollRow(this, 1)">&rsaquo;</button>
+            </div>
+        </section>
+        {% endif %}
+
+        {% if played %}
+        <section class="game-section">
+            <div class="section-header">
+                <h2 class="section-title">
+                    <span class="section-title-icon">*</span>
+                    Community Played Recently
+                </h2>
+            </div>
+            <div class="game-row-container">
+                <button class="scroll-btn scroll-btn-left" onclick="scrollRow(this, -1)">&lsaquo;</button>
+                <div class="game-row">
+                {% for game in played %}
+                {% set screenshots = parse_json(game.igdb_screenshots) %}
+                {% set genres = parse_json(game.genres) %}
+                {% set cover = game.cover_url_override or game.igdb_cover_url or game.cover_image %}
+                {% set bg = screenshots[0] if screenshots else cover %}
+                <div class="featured-card" data-game-id="{{ game.id }}" onclick="openExpandedCardFromEvent(event, this)">
+                    <div class="featured-card-media">
+                        {% if bg %}
+                        <img src="{{ bg }}" alt="" class="featured-card-bg" loading="lazy">
+                        {% endif %}
+                        <div class="featured-card-gradient"></div>
+                        {% if game.total_rating or game.igdb_rating or game.aggregated_rating %}
+                        <div class="featured-card-ratings" title="Total | User | Critic">
+                            {% if game.total_rating %}<span class="rating total">{{ game.total_rating|round|int }}</span>{% endif %}
+                            {% if game.igdb_rating %}<span class="rating user">{{ game.igdb_rating|round|int }}</span>{% endif %}
+                            {% if game.aggregated_rating %}<span class="rating critic">{{ game.aggregated_rating|round|int }}</span>{% endif %}
+                        </div>
+                        {% endif %}
+                    </div>
+                    <div class="featured-card-content">
+                        <h3 class="featured-card-title">{{ game.name }}</h3>
+                        {% if genres %}
+                        <div class="featured-card-genres">
+                            {% for genre in genres[:2] %}
+                            <span class="featured-card-genre">{{ genre }}</span>
+                            {% endfor %}
+                        </div>
+                        {% endif %}
+                        {% set desc = game.igdb_summary or game.description %}
+                        {% if desc %}
+                        <p class="featured-card-desc">{{ desc }}</p>
+                        {% endif %}
+                    </div>
+                    {% if screenshots|length > 1 %}
+                    <div class="featured-card-screenshots">
+                        {% for ss in screenshots[1:4] %}
+                        <img src="{{ ss }}" alt="Screenshot" class="featured-card-screenshot" data-index="{{ loop.index }}">
+                        {% endfor %}
+                    </div>
+                    {% endif %}
+                </div>
+                {% endfor %}
+                </div>
+                <button class="scroll-btn scroll-btn-right" onclick="scrollRow(this, 1)">&rsaquo;</button>
+            </div>
+        </section>
+        {% endif %}
+
+        {% if steam_peak_24h %}
+        <section class="game-section">
+            <div class="section-header">
+                <h2 class="section-title">
+                    <span class="section-title-icon">*</span>
+                    Steam 24hr Peak Players
+                </h2>
+            </div>
+            <div class="game-row-container">
+                <button class="scroll-btn scroll-btn-left" onclick="scrollRow(this, -1)">&lsaquo;</button>
+                <div class="game-row">
+                {% for game in steam_peak_24h %}
+                {% set screenshots = parse_json(game.igdb_screenshots) %}
+                {% set genres = parse_json(game.genres) %}
+                {% set cover = game.cover_url_override or game.igdb_cover_url or game.cover_image %}
+                {% set bg = screenshots[0] if screenshots else cover %}
+                <div class="featured-card" data-game-id="{{ game.id }}" onclick="openExpandedCardFromEvent(event, this)">
+                    <div class="featured-card-media">
+                        {% if bg %}
+                        <img src="{{ bg }}" alt="" class="featured-card-bg" loading="lazy">
+                        {% endif %}
+                        <div class="featured-card-gradient"></div>
+                        {% if game.total_rating or game.igdb_rating or game.aggregated_rating %}
+                        <div class="featured-card-ratings" title="Total | User | Critic">
+                            {% if game.total_rating %}<span class="rating total">{{ game.total_rating|round|int }}</span>{% endif %}
+                            {% if game.igdb_rating %}<span class="rating user">{{ game.igdb_rating|round|int }}</span>{% endif %}
+                            {% if game.aggregated_rating %}<span class="rating critic">{{ game.aggregated_rating|round|int }}</span>{% endif %}
+                        </div>
+                        {% endif %}
+                    </div>
+                    <div class="featured-card-content">
+                        <h3 class="featured-card-title">{{ game.name }}</h3>
+                        {% if genres %}
+                        <div class="featured-card-genres">
+                            {% for genre in genres[:2] %}
+                            <span class="featured-card-genre">{{ genre }}</span>
+                            {% endfor %}
+                        </div>
+                        {% endif %}
+                        {% set desc = game.igdb_summary or game.description %}
+                        {% if desc %}
+                        <p class="featured-card-desc">{{ desc }}</p>
+                        {% endif %}
+                    </div>
+                    {% if screenshots|length > 1 %}
+                    <div class="featured-card-screenshots">
+                        {% for ss in screenshots[1:4] %}
+                        <img src="{{ ss }}" alt="Screenshot" class="featured-card-screenshot" data-index="{{ loop.index }}">
+                        {% endfor %}
+                    </div>
+                    {% endif %}
+                </div>
+                {% endfor %}
+                </div>
+                <button class="scroll-btn scroll-btn-right" onclick="scrollRow(this, 1)">&rsaquo;</button>
+            </div>
+        </section>
+        {% endif %}
+
+        {% if steam_positive_reviews %}
+        <section class="game-section">
+            <div class="section-header">
+                <h2 class="section-title">
+                    <span class="section-title-icon">*</span>
+                    Steam Positive Reviews
+                </h2>
+            </div>
+            <div class="game-row-container">
+                <button class="scroll-btn scroll-btn-left" onclick="scrollRow(this, -1)">&lsaquo;</button>
+                <div class="game-row">
+                {% for game in steam_positive_reviews %}
+                {% set screenshots = parse_json(game.igdb_screenshots) %}
+                {% set genres = parse_json(game.genres) %}
+                {% set cover = game.cover_url_override or game.igdb_cover_url or game.cover_image %}
+                {% set bg = screenshots[0] if screenshots else cover %}
+                <div class="featured-card" data-game-id="{{ game.id }}" onclick="openExpandedCardFromEvent(event, this)">
+                    <div class="featured-card-media">
+                        {% if bg %}
+                        <img src="{{ bg }}" alt="" class="featured-card-bg" loading="lazy">
+                        {% endif %}
+                        <div class="featured-card-gradient"></div>
+                        {% if game.total_rating or game.igdb_rating or game.aggregated_rating %}
+                        <div class="featured-card-ratings" title="Total | User | Critic">
+                            {% if game.total_rating %}<span class="rating total">{{ game.total_rating|round|int }}</span>{% endif %}
+                            {% if game.igdb_rating %}<span class="rating user">{{ game.igdb_rating|round|int }}</span>{% endif %}
+                            {% if game.aggregated_rating %}<span class="rating critic">{{ game.aggregated_rating|round|int }}</span>{% endif %}
+                        </div>
+                        {% endif %}
+                    </div>
+                    <div class="featured-card-content">
+                        <h3 class="featured-card-title">{{ game.name }}</h3>
+                        {% if genres %}
+                        <div class="featured-card-genres">
+                            {% for genre in genres[:2] %}
+                            <span class="featured-card-genre">{{ genre }}</span>
+                            {% endfor %}
+                        </div>
+                        {% endif %}
+                        {% set desc = game.igdb_summary or game.description %}
+                        {% if desc %}
+                        <p class="featured-card-desc">{{ desc }}</p>
+                        {% endif %}
+                    </div>
+                    {% if screenshots|length > 1 %}
+                    <div class="featured-card-screenshots">
+                        {% for ss in screenshots[1:4] %}
+                        <img src="{{ ss }}" alt="Screenshot" class="featured-card-screenshot" data-index="{{ loop.index }}">
+                        {% endfor %}
+                    </div>
+                    {% endif %}
+                </div>
+                {% endfor %}
+                </div>
+                <button class="scroll-btn scroll-btn-right" onclick="scrollRow(this, 1)">&rsaquo;</button>
+            </div>
+        </section>
+        {% endif %}
+
         {% if highly_rated %}
         <section class="game-section">
             <div class="section-header">
@@ -1420,6 +1774,102 @@
             },
             {% endfor %}
             {% for game in random_picks %}
+            {{ game.id }}: {
+                id: {{ game.id }},
+                name: {{ game.name|tojson }},
+                igdb_cover_url: {{ (game.igdb_cover_url or '')|tojson }},
+                cover_image: {{ (game.cover_image or '')|tojson }},
+                igdb_summary: {{ (game.igdb_summary or '')|tojson }},
+                description: {{ (game.description or '')|tojson }},
+                igdb_screenshots: {{ (game.igdb_screenshots or '[]')|safe }},
+                genres: {{ (game.genres or '[]')|safe }},
+                total_rating: {{ game.total_rating or 'null' }},
+                igdb_rating: {{ game.igdb_rating or 'null' }},
+                aggregated_rating: {{ game.aggregated_rating or 'null' }},
+                playtime_hours: {{ game.playtime_hours or 'null' }}
+            },
+            {% endfor %}
+            {% for game in igdb_visits %}
+            {{ game.id }}: {
+                id: {{ game.id }},
+                name: {{ game.name|tojson }},
+                igdb_cover_url: {{ (game.igdb_cover_url or '')|tojson }},
+                cover_image: {{ (game.cover_image or '')|tojson }},
+                igdb_summary: {{ (game.igdb_summary or '')|tojson }},
+                description: {{ (game.description or '')|tojson }},
+                igdb_screenshots: {{ (game.igdb_screenshots or '[]')|safe }},
+                genres: {{ (game.genres or '[]')|safe }},
+                total_rating: {{ game.total_rating or 'null' }},
+                igdb_rating: {{ game.igdb_rating or 'null' }},
+                aggregated_rating: {{ game.aggregated_rating or 'null' }},
+                playtime_hours: {{ game.playtime_hours or 'null' }}
+            },
+            {% endfor %}
+            {% for game in want_to_play %}
+            {{ game.id }}: {
+                id: {{ game.id }},
+                name: {{ game.name|tojson }},
+                igdb_cover_url: {{ (game.igdb_cover_url or '')|tojson }},
+                cover_image: {{ (game.cover_image or '')|tojson }},
+                igdb_summary: {{ (game.igdb_summary or '')|tojson }},
+                description: {{ (game.description or '')|tojson }},
+                igdb_screenshots: {{ (game.igdb_screenshots or '[]')|safe }},
+                genres: {{ (game.genres or '[]')|safe }},
+                total_rating: {{ game.total_rating or 'null' }},
+                igdb_rating: {{ game.igdb_rating or 'null' }},
+                aggregated_rating: {{ game.aggregated_rating or 'null' }},
+                playtime_hours: {{ game.playtime_hours or 'null' }}
+            },
+            {% endfor %}
+            {% for game in playing %}
+            {{ game.id }}: {
+                id: {{ game.id }},
+                name: {{ game.name|tojson }},
+                igdb_cover_url: {{ (game.igdb_cover_url or '')|tojson }},
+                cover_image: {{ (game.cover_image or '')|tojson }},
+                igdb_summary: {{ (game.igdb_summary or '')|tojson }},
+                description: {{ (game.description or '')|tojson }},
+                igdb_screenshots: {{ (game.igdb_screenshots or '[]')|safe }},
+                genres: {{ (game.genres or '[]')|safe }},
+                total_rating: {{ game.total_rating or 'null' }},
+                igdb_rating: {{ game.igdb_rating or 'null' }},
+                aggregated_rating: {{ game.aggregated_rating or 'null' }},
+                playtime_hours: {{ game.playtime_hours or 'null' }}
+            },
+            {% endfor %}
+            {% for game in played %}
+            {{ game.id }}: {
+                id: {{ game.id }},
+                name: {{ game.name|tojson }},
+                igdb_cover_url: {{ (game.igdb_cover_url or '')|tojson }},
+                cover_image: {{ (game.cover_image or '')|tojson }},
+                igdb_summary: {{ (game.igdb_summary or '')|tojson }},
+                description: {{ (game.description or '')|tojson }},
+                igdb_screenshots: {{ (game.igdb_screenshots or '[]')|safe }},
+                genres: {{ (game.genres or '[]')|safe }},
+                total_rating: {{ game.total_rating or 'null' }},
+                igdb_rating: {{ game.igdb_rating or 'null' }},
+                aggregated_rating: {{ game.aggregated_rating or 'null' }},
+                playtime_hours: {{ game.playtime_hours or 'null' }}
+            },
+            {% endfor %}
+            {% for game in steam_peak_24h %}
+            {{ game.id }}: {
+                id: {{ game.id }},
+                name: {{ game.name|tojson }},
+                igdb_cover_url: {{ (game.igdb_cover_url or '')|tojson }},
+                cover_image: {{ (game.cover_image or '')|tojson }},
+                igdb_summary: {{ (game.igdb_summary or '')|tojson }},
+                description: {{ (game.description or '')|tojson }},
+                igdb_screenshots: {{ (game.igdb_screenshots or '[]')|safe }},
+                genres: {{ (game.genres or '[]')|safe }},
+                total_rating: {{ game.total_rating or 'null' }},
+                igdb_rating: {{ game.igdb_rating or 'null' }},
+                aggregated_rating: {{ game.aggregated_rating or 'null' }},
+                playtime_hours: {{ game.playtime_hours or 'null' }}
+            },
+            {% endfor %}
+            {% for game in steam_positive_reviews %}
             {{ game.id }}: {
                 id: {{ game.id }},
                 name: {{ game.name|tojson }},

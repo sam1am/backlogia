@@ -17,7 +17,10 @@ from settings import (
 )
 from igdb_sync import (
     IGDBClient, sync_games as igdb_sync_games, add_igdb_columns,
-    extract_genres_and_themes, merge_and_dedupe_genres
+    extract_genres_and_themes, merge_and_dedupe_genres,
+    POPULARITY_TYPE_IGDB_VISITS, POPULARITY_TYPE_IGDB_WANT_TO_PLAY,
+    POPULARITY_TYPE_IGDB_PLAYING, POPULARITY_TYPE_IGDB_PLAYED,
+    POPULARITY_TYPE_STEAM_PEAK_24H, POPULARITY_TYPE_STEAM_POSITIVE_REVIEWS
 )
 from build_database import (
     create_database, import_steam_games, import_epic_games,
@@ -702,6 +705,14 @@ def discover():
     popular_games = []
     popularity_source = "rating"  # Default fallback
 
+    # Popularity-based sections (will be populated if IGDB API succeeds)
+    igdb_visits = []
+    want_to_play = []
+    playing = []
+    played = []
+    steam_peak_24h = []
+    steam_positive_reviews = []
+
     if igdb_ids:
         try:
             client = IGDBClient()
@@ -720,6 +731,28 @@ def discover():
                         game_data["popularity_value"] = pop.get("value", 0)
                         popular_games.append(game_data)
                         seen_ids.add(game_id)
+
+            # Helper function to fetch games by popularity type
+            def fetch_by_popularity_type(pop_type, limit=10):
+                pop_data = client.get_popular_games(igdb_ids, popularity_type=pop_type, limit=limit)
+                result = []
+                seen = set()
+                for pop in pop_data:
+                    gid = pop.get("game_id")
+                    if gid in igdb_to_local and gid not in seen:
+                        gdata = igdb_to_local[gid].copy()
+                        gdata["popularity_value"] = pop.get("value", 0)
+                        result.append(gdata)
+                        seen.add(gid)
+                return result
+
+            # Fetch each popularity type
+            igdb_visits = fetch_by_popularity_type(POPULARITY_TYPE_IGDB_VISITS)
+            want_to_play = fetch_by_popularity_type(POPULARITY_TYPE_IGDB_WANT_TO_PLAY)
+            playing = fetch_by_popularity_type(POPULARITY_TYPE_IGDB_PLAYING)
+            played = fetch_by_popularity_type(POPULARITY_TYPE_IGDB_PLAYED)
+            steam_peak_24h = fetch_by_popularity_type(POPULARITY_TYPE_STEAM_PEAK_24H)
+            steam_positive_reviews = fetch_by_popularity_type(POPULARITY_TYPE_STEAM_POSITIVE_REVIEWS)
 
         except Exception as e:
             print(f"Could not fetch IGDB popularity data: {e}")
@@ -807,6 +840,12 @@ def discover():
         critic_favorites=critic_favorites,
         random_picks=random_picks,
         popularity_source=popularity_source,
+        igdb_visits=igdb_visits,
+        want_to_play=want_to_play,
+        playing=playing,
+        played=played,
+        steam_peak_24h=steam_peak_24h,
+        steam_positive_reviews=steam_positive_reviews,
         parse_json=parse_json_field
     )
 
