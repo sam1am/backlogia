@@ -1,0 +1,26 @@
+services:
+  backlogia:
+    build: .
+    container_name: backlogia
+    ports:
+      - "${WEB_PORT:-5050}:5050"
+    volumes:
+      - ./data:/data
+      - ${GOG_DB_DIR:-./.empty}:/gog:ro
+    environment:
+      - DATABASE_PATH=/data/game_library.db
+      - DEBUG=false
+      - PORT=5050
+      # Steam configuration
+      - STEAM_ID=${STEAM_ID:-}
+      - STEAM_API_KEY=${STEAM_API_KEY:-}
+      # IGDB configuration
+      - IGDB_CLIENT_ID=${IGDB_CLIENT_ID:-}
+      - IGDB_CLIENT_SECRET=${IGDB_CLIENT_SECRET:-}
+      # itch.io configuration
+      - ITCH_API_KEY=${ITCH_API_KEY:-}
+      # Humble Bundle configuration
+      - HUMBLE_SESSION_COOKIE=${HUMBLE_SESSION_COOKIE:-}
+      # GOG configuration - automatically uses mounted path
+      - GOG_DB_PATH=/gog/galaxy-2.0.db
+    restart: unless-stopped

@@ -1,6 +1,7 @@
 # app.py
 # Web interface for the game library
 
+import os
 import sys
 from flask import Flask, render_template, request, jsonify, redirect, url_for
 import sqlite3
@@ -27,7 +28,7 @@ import subprocess
 
 app = Flask(__name__)
 
-DATABASE_PATH = Path(__file__).parent.parent / "game_library.db"
+DATABASE_PATH = Path(os.environ.get("DATABASE_PATH", Path(__file__).parent.parent / "game_library.db"))
 
 # Filter out duplicate GOG entries from Amazon Prime/Luna
 EXCLUDE_DUPLICATES_FILTER = """
@@ -52,6 +53,11 @@ def ensure_extra_columns():
     """Add extra columns to database if they don't exist."""
     conn = sqlite3.connect(DATABASE_PATH)
     cursor = conn.cursor()
+    # Check if games table exists first
+    cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='games'")
+    if not cursor.fetchone():
+        conn.close()
+        return  # Table doesn't exist yet, nothing to migrate
     cursor.execute("PRAGMA table_info(games)")
     columns = {row[1] for row in cursor.fetchall()}
     if "hidden" not in columns:
@@ -64,8 +70,13 @@ def ensure_extra_columns():
     conn.close()
 
 
-# Ensure extra columns exist on startup
+# Ensure database and tables exist on startup
+create_database()
 ensure_extra_columns()
+# Add IGDB columns
+_init_conn = sqlite3.connect(DATABASE_PATH)
+add_igdb_columns(_init_conn)
+_init_conn.close()
 
 
 def parse_json_field(value):
@@ -1322,4 +1333,6 @@ def api_get_game_collections(game_id):
 
 
 if __name__ == "__main__":
-    app.run(debug=True, port=5050)
+    port = int(os.environ.get("PORT", 5050))
+    debug = os.environ.get("DEBUG", "true").lower() == "true"
+    app.run(host="0.0.0.0", debug=debug, port=port)

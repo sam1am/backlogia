@@ -17,7 +17,7 @@ from gog import get_gog_library
 
 # itch.io is imported conditionally since it requires OAuth setup
 
-DATABASE_PATH = Path(__file__).parent.parent / "game_library.db"
+DATABASE_PATH = Path(os.environ.get("DATABASE_PATH", Path(__file__).parent.parent / "game_library.db"))
 
 
 def create_database():

@@ -4,9 +4,36 @@ import sqlite3
 import json
 from pathlib import Path
 
+# Import settings to get configured GOG_DB_PATH
+try:
+    from settings import get_gog_settings
+except ImportError:
+    # Fallback if running standalone
+    def get_gog_settings():
+        return {"db_path": os.environ.get("GOG_DB_PATH")}
+
 
 def find_gog_database():
     """Find GOG Galaxy database"""
+    print("[GOG DEBUG] Looking for GOG database...")
+
+    # First check configured path from settings/environment
+    gog_settings = get_gog_settings()
+    configured_path = gog_settings.get("db_path")
+    print(f"[GOG DEBUG] Configured GOG_DB_PATH: {configured_path}")
+
+    if configured_path:
+        path = Path(configured_path)
+        print(f"[GOG DEBUG] Checking configured path: {path}")
+        print(f"[GOG DEBUG] Path exists: {path.exists()}")
+        if path.exists():
+            print(f"[GOG DEBUG] Using configured path: {path}")
+            return path
+        else:
+            print(f"[GOG DEBUG] Configured path does not exist!")
+
+    # Fall back to auto-detection
+    print("[GOG DEBUG] Falling back to auto-detection...")
     possible_paths = [
         # macOS (shared location)
         Path("/Users/Shared/GOG.com/Galaxy/Storage/galaxy-2.0.db"),
@@ -21,8 +48,12 @@ def find_gog_database():
     ]
 
     for path in possible_paths:
+        print(f"[GOG DEBUG] Checking: {path} - exists: {path.exists()}")
         if path.exists():
+            print(f"[GOG DEBUG] Found database at: {path}")
             return path
+
+    print("[GOG DEBUG] No GOG database found!")
     return None
 
 
@@ -39,14 +70,21 @@ def _parse_json_value(value):
 def get_gog_library():
     db_path = find_gog_database()
     if not db_path:
-        print("GOG Galaxy database not found!")
+        print("[GOG DEBUG] GOG Galaxy database not found!")
         return []
 
+    print(f"[GOG DEBUG] Using database: {db_path}")
     games = []
 
     # SQLite database (Windows/macOS with GOG Galaxy)
     if db_path.suffix == ".db":
-        conn = sqlite3.connect(f"file:{db_path}?mode=ro", uri=True)
+        print(f"[GOG DEBUG] Connecting to SQLite database...")
+        try:
+            conn = sqlite3.connect(f"file:{db_path}?mode=ro", uri=True)
+            print(f"[GOG DEBUG] Connected successfully")
+        except Exception as e:
+            print(f"[GOG DEBUG] Connection failed: {e}")
+            return []
         cursor = conn.cursor()
 
         # Query for owned GOG games with all their metadata
@@ -74,8 +112,11 @@ def get_gog_library():
         """
 
         try:
+            print("[GOG DEBUG] Executing query...")
             cursor.execute(query)
-            for row in cursor.fetchall():
+            rows = cursor.fetchall()
+            print(f"[GOG DEBUG] Query returned {len(rows)} rows")
+            for row in rows:
                 release_key = row[0]
                 title_data = _parse_json_value(row[1])
                 meta_data = _parse_json_value(row[2])
@@ -122,6 +163,7 @@ def get_gog_library():
                 "platform": "gog"
             })
 
+    print(f"[GOG DEBUG] Returning {len(games)} games")
     return games
 
 

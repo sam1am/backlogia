@@ -1,11 +1,13 @@
 # settings.py
 # Database-backed settings management for API credentials
+# Environment variables take precedence over database settings (for Docker)
 
+import os
 import sqlite3
 from pathlib import Path
 from datetime import datetime
 
-DATABASE_PATH = Path(__file__).parent.parent / "game_library.db"
+DATABASE_PATH = Path(os.environ.get("DATABASE_PATH", Path(__file__).parent.parent / "game_library.db"))
 
 # Setting keys
 STEAM_ID = "steam_id"
@@ -15,6 +17,17 @@ IGDB_CLIENT_SECRET = "igdb_client_secret"
 ITCH_API_KEY = "itch_api_key"
 HUMBLE_SESSION_COOKIE = "humble_session_cookie"
 GOG_DB_PATH = "gog_db_path"
+
+# Map setting keys to environment variable names
+ENV_VAR_MAP = {
+    STEAM_ID: "STEAM_ID",
+    STEAM_API_KEY: "STEAM_API_KEY",
+    IGDB_CLIENT_ID: "IGDB_CLIENT_ID",
+    IGDB_CLIENT_SECRET: "IGDB_CLIENT_SECRET",
+    ITCH_API_KEY: "ITCH_API_KEY",
+    HUMBLE_SESSION_COOKIE: "HUMBLE_SESSION_COOKIE",
+    GOG_DB_PATH: "GOG_DB_PATH",
+}
 
 
 def _ensure_settings_table(conn):
@@ -31,7 +44,15 @@ def _ensure_settings_table(conn):
 
 
 def get_setting(key, default=None):
-    """Get a setting value from the database."""
+    """Get a setting value. Environment variables take precedence over database."""
+    # Check environment variable first
+    env_var = ENV_VAR_MAP.get(key)
+    if env_var:
+        env_value = os.environ.get(env_var)
+        if env_value:
+            return env_value
+
+    # Fall back to database
     try:
         conn = sqlite3.connect(DATABASE_PATH)
         _ensure_settings_table(conn)
@@ -58,7 +79,10 @@ def set_setting(key, value):
 
 
 def get_all_settings():
-    """Get all settings as a dictionary."""
+    """Get all settings as a dictionary. Environment variables take precedence."""
+    settings = {}
+
+    # Get database settings first
     try:
         conn = sqlite3.connect(DATABASE_PATH)
         _ensure_settings_table(conn)
@@ -66,9 +90,17 @@ def get_all_settings():
         cursor.execute("SELECT key, value FROM settings")
         rows = cursor.fetchall()
         conn.close()
-        return {key: value for key, value in rows}
+        settings = {key: value for key, value in rows}
     except Exception:
-        return {}
+        pass
+
+    # Override with environment variables
+    for key, env_var in ENV_VAR_MAP.items():
+        env_value = os.environ.get(env_var)
+        if env_value:
+            settings[key] = env_value
+
+    return settings
 
 
 def delete_setting(key):
