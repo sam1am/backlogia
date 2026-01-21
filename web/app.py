@@ -135,8 +135,14 @@ def group_games_by_igdb(games):
 
 
 @app.route("/")
-def index():
-    """Main page - list all games."""
+def home():
+    """Home page - redirect to discover."""
+    return redirect(url_for('discover'))
+
+
+@app.route("/library")
+def library():
+    """Library page - list all games."""
     conn = get_db()
     cursor = conn.cursor()
 
