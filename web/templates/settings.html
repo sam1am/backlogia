@@ -134,6 +134,7 @@
         .section-icon.gog { background: #86328a; }
         .section-icon.humble { background: #cc3333; }
         .section-icon.battlenet { background: #00aeff; }
+        .section-icon.amazon { background: #ff9900; }
         .section-icon.sync { background: #4caf50; }
 
         /* Collapsible Sections */
@@ -576,6 +577,7 @@
         .sync-btn .icon.itch { background: #fa5c5c; }
         .sync-btn .icon.humble { background: #cc3333; }
         .sync-btn .icon.battlenet { background: #00aeff; }
+        .sync-btn .icon.amazon { background: #ff9900; }
         .sync-btn .icon.all { background: linear-gradient(90deg, #667eea, #764ba2); }
         .sync-btn .icon.igdb { background: #9147ff; }
 
@@ -777,6 +779,13 @@
                         <div class="text">
                             <span>Sync Battle.net</span>
                             <small>Import from Battle.net</small>
+                        </div>
+                    </button>
+                    <button class="sync-btn" onclick="syncStore('amazon')">
+                        <div class="icon amazon">A</div>
+                        <div class="text">
+                            <span>Sync Amazon</span>
+                            <small>Import from Amazon Games</small>
                         </div>
                     </button>
                 </div>
@@ -1092,6 +1101,52 @@
                     </div>
                 </div>
 
+                <!-- Amazon Games -->
+                <div class="collapsible-section">
+                    <div class="collapsible-header" onclick="toggleCollapsible(this)">
+                        <div class="section-icon amazon">A</div>
+                        <div class="header-text">
+                            <div class="section-title">Amazon Games</div>
+                            <div class="section-description">Connect to your Amazon Games library</div>
+                        </div>
+                        <div class="collapsible-toggle">▼</div>
+                    </div>
+                    <div class="collapsible-content">
+                        <div class="collapsible-content-inner">
+                            <div class="form-group">
+                                <label>Amazon Authentication</label>
+                                <div id="amazon-auth-status" class="auth-status">Checking status...</div>
+                                <div id="amazon-auth-actions" style="margin-top: 10px;">
+                                    <button type="button" class="btn btn-primary" id="amazon-auth-btn" onclick="startAmazonAuth()">
+                                        Authenticate with Amazon
+                                    </button>
+                                </div>
+                                <div id="amazon-auth-flow" style="display: none; margin-top: 15px;">
+                                    <div class="instructions-box">
+                                        <ol>
+                                            <li>Click the button above to open Amazon login</li>
+                                            <li>Log in to your Amazon account</li>
+                                            <li>After login, you'll see a blank page - this is expected</li>
+                                            <li>Copy the <strong>entire URL</strong> from your browser's address bar</li>
+                                            <li>Paste it below and click "Complete Authentication"</li>
+                                        </ol>
+                                    </div>
+                                    <div class="form-group" style="margin-top: 15px;">
+                                        <label for="amazon_auth_code">Redirect URL or Authorization Code</label>
+                                        <input type="text" id="amazon_auth_code" placeholder="Paste the full URL from your browser">
+                                    </div>
+                                    <button type="button" class="btn btn-primary" onclick="completeAmazonAuth()">
+                                        Complete Authentication
+                                    </button>
+                                    <button type="button" class="btn btn-secondary" onclick="cancelAmazonAuth()">
+                                        Cancel
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
                 <div class="button-row">
                     <button type="submit" class="btn btn-primary">Save Settings</button>
                     <a href="/" class="btn btn-secondary">Cancel</a>
@@ -1283,7 +1338,95 @@
         // Check Epic status on page load
         document.addEventListener('DOMContentLoaded', function() {
             checkEpicStatus();
+            checkAmazonStatus();
         });
+
+        // Amazon Authentication
+        let amazonSessionId = null;
+
+        function checkAmazonStatus() {
+            const statusEl = document.getElementById('amazon-auth-status');
+            const authBtn = document.getElementById('amazon-auth-btn');
+
+            fetch('/api/amazon/auth/status')
+            .then(response => response.json())
+            .then(data => {
+                if (!data.nile_installed) {
+                    statusEl.innerHTML = '<span style="color: #f44336;">Error: Nile not available in container</span>';
+                    if (authBtn) authBtn.disabled = true;
+                } else if (data.authenticated) {
+                    statusEl.innerHTML = '<span style="color: #4caf50;">Authenticated</span>' +
+                        (data.username && data.username !== '<not logged in>' ? ` as ${data.username}` : '') +
+                        ' - Ready to sync';
+                    if (authBtn) authBtn.textContent = 'Re-authenticate';
+                } else {
+                    statusEl.innerHTML = '<span style="color: #888;">Not authenticated</span>';
+                    if (authBtn) authBtn.textContent = 'Authenticate with Amazon';
+                }
+            })
+            .catch(error => {
+                statusEl.textContent = 'Error checking status';
+            });
+        }
+
+        function startAmazonAuth() {
+            showStatus('Starting Amazon authentication...', 'loading');
+
+            fetch('/api/amazon/auth/start', { method: 'POST' })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success && data.login_url) {
+                    amazonSessionId = data.session_id;
+                    window.open(data.login_url, '_blank', 'width=500,height=700');
+                    document.getElementById('amazon-auth-flow').style.display = 'block';
+                    document.getElementById('amazon-auth-btn').style.display = 'none';
+                    showStatus('Complete the login in the popup window, then paste the redirect URL below.', 'loading');
+                } else {
+                    showStatus('Failed to start authentication: ' + (data.error || 'Unknown error'), 'error');
+                }
+            })
+            .catch(error => {
+                showStatus('Network error: ' + error.message, 'error');
+            });
+        }
+
+        function completeAmazonAuth() {
+            const code = document.getElementById('amazon_auth_code').value.trim();
+
+            if (!code) {
+                showStatus('Please paste the redirect URL or authorization code', 'error');
+                return;
+            }
+
+            showStatus('Completing Amazon authentication...', 'loading');
+
+            fetch('/api/amazon/auth/complete', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ code: code, session_id: amazonSessionId })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    showStatus(data.message || 'Authentication successful!', 'success');
+                    cancelAmazonAuth();
+                    checkAmazonStatus();
+                } else {
+                    showStatus('Authentication failed: ' + (data.error || 'Unknown error'), 'error');
+                }
+            })
+            .catch(error => {
+                showStatus('Network error: ' + error.message, 'error');
+            });
+        }
+
+        function cancelAmazonAuth() {
+            document.getElementById('amazon-auth-flow').style.display = 'none';
+            document.getElementById('amazon-auth-btn').style.display = 'inline-block';
+            document.getElementById('amazon_auth_code').value = '';
+            amazonSessionId = null;
+            clearStatus();
+        }
 
         // Collapsible sections
         function toggleCollapsible(header) {

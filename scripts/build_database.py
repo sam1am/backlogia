@@ -436,6 +436,58 @@ def import_battlenet_games(conn):
         return 0
 
 
+def import_amazon_games(conn):
+    """Import games from Amazon Games (local database or API token)."""
+    print("Importing Amazon Games library...")
+    cursor = conn.cursor()
+
+    try:
+        from amazon import get_amazon_library
+
+        games = get_amazon_library()
+        if not games:
+            print("  No Amazon games found or not configured")
+            print("  Set up Amazon Games in Settings (local database or API token)")
+            return 0
+
+        count = 0
+        for game in games:
+            try:
+                # Build developers/publishers JSON arrays
+                developers = [game.get("developer")] if game.get("developer") else None
+                publishers = [game.get("publisher")] if game.get("publisher") else None
+
+                cursor.execute("""
+                    INSERT OR REPLACE INTO games (
+                        name, store, store_id, cover_image, icon,
+                        developers, publishers, extra_data, updated_at
+                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """, (
+                    game.get("name"),
+                    "amazon",
+                    game.get("product_id"),
+                    game.get("icon_url"),
+                    game.get("icon_url"),
+                    json.dumps(developers) if developers else None,
+                    json.dumps(publishers) if publishers else None,
+                    json.dumps(game.get("raw_data", {})),
+                    datetime.now().isoformat()
+                ))
+                count += 1
+            except Exception as e:
+                print(f"  Error importing {game.get('name')}: {e}")
+
+        conn.commit()
+        print(f"  Imported {count} Amazon games")
+        return count
+    except ImportError:
+        print("  Amazon Games module not available")
+        return 0
+    except Exception as e:
+        print(f"  Amazon Games import error: {e}")
+        return 0
+
+
 def get_stats(conn):
     """Get database statistics."""
     cursor = conn.cursor()
@@ -462,6 +514,7 @@ def main():
     itch_count = import_itch_games(conn)
     humble_count = import_humble_games(conn)
     battlenet_count = import_battlenet_games(conn)
+    amazon_count = import_amazon_games(conn)
 
     print("=" * 60)
     stats = get_stats(conn)

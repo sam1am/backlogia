@@ -2,7 +2,7 @@
 
 **Your entire game library, finally in one place.**
 
-Stop jumping between Steam, Epic, GOG, and a dozen other launchers just to see what you own. Backlogia aggregates all your games into a single, beautifully organized library with rich metadata, ratings, and discovery features—all running locally on your machine.
+Stop jumping between Steam, Epic, GOG, Amazon, and a dozen other launchers just to see what you own. Backlogia aggregates all your games into a single, beautifully organized library with rich metadata, ratings, and discovery features—all running locally on your machine.
 
 ![Library View](docs/images/library.png)
 
@@ -14,13 +14,14 @@ Stop jumping between Steam, Epic, GOG, and a dozen other launchers just to see w
   <img src="web/static/images/steam-100.png" alt="Steam" width="48" height="48" style="margin: 0 10px;">
   <img src="web/static/images/epic-100.png" alt="Epic Games" width="48" height="48" style="margin: 0 10px;">
   <img src="web/static/images/gog-48.png" alt="GOG" width="48" height="48" style="margin: 0 10px;">
+  <img src="web/static/images/amazon-120.png" alt="Amazon Games" width="48" height="48" style="margin: 0 10px;">
   <img src="web/static/images/itch-90.png" alt="itch.io" width="48" height="48" style="margin: 0 10px;">
   <img src="web/static/images/humble-96.png" alt="Humble Bundle" width="48" height="48" style="margin: 0 10px;">
   <img src="web/static/images/battlenet-100.png" alt="Battle.net" width="48" height="48" style="margin: 0 10px;">
 </p>
 
 <p align="center">
-  <strong>Steam</strong> &nbsp;•&nbsp; <strong>Epic Games</strong> &nbsp;•&nbsp; <strong>GOG</strong> &nbsp;•&nbsp; <strong>itch.io</strong> &nbsp;•&nbsp; <strong>Humble Bundle</strong> &nbsp;•&nbsp; <strong>Battle.net</strong>
+  <strong>Steam</strong> &nbsp;•&nbsp; <strong>Epic Games</strong> &nbsp;•&nbsp; <strong>GOG</strong> &nbsp;•&nbsp; <strong>Amazon Games</strong> &nbsp;•&nbsp; <strong>itch.io</strong> &nbsp;•&nbsp; <strong>Humble Bundle</strong> &nbsp;•&nbsp; <strong>Battle.net</strong>
 </p>
 
 Please vote for which stores you would like to see supported next [here](https://github.com/sam1am/backlogia/discussions/1).
@@ -122,6 +123,7 @@ Connect your accounts and sync your library with a single click.
 |--------|---------|
 | `./data:/data` | Database and persistent storage |
 | `./data/legendary:/root/.config/legendary` | Epic Games authentication cache |
+| `./data/nile:/root/.config/nile` | Amazon Games authentication cache |
 | `${GOG_DB_DIR}:/gog:ro` | GOG Galaxy database (read-only) |
 
 ### Option 2: Local Installation
@@ -230,6 +232,15 @@ To get your cookies:
 3. Refresh the page and click on any request to `account.battle.net`
 4. In Request Headers, find **Cookie** and copy the entire value
 
+### Amazon Games
+
+Amazon Games uses [Nile](https://github.com/imLinguin/nile), an open-source Amazon Games client. Authenticate through the Settings page in Backlogia:
+
+1. Click **Authenticate with Amazon** in Settings
+2. Log in to your Amazon account in the popup window
+3. After login, copy the redirect URL and paste it back into Backlogia
+4. Click **Complete Authentication**
+
 ---
 
 ## Tech Stack
@@ -239,6 +250,15 @@ To get your cookies:
 - **Frontend**: Jinja2 templates, vanilla JavaScript
 - **Metadata**: IGDB API integration
 - **Deployment**: Docker + Docker Compose
+
+---
+
+## Acknowledgements
+
+Backlogia is built on the shoulders of these excellent open-source projects:
+
+- **[Legendary](https://github.com/derrod/legendary)** — Epic Games Store integration
+- **[Nile](https://github.com/imLinguin/nile)** — Amazon Games integration
 
 ---
 
