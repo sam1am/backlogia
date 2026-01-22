@@ -1,518 +1,307 @@
 # amazon.py
-# Fetches owned games from Amazon Games using OAuth device registration
-# Supports both local SQLite database (Windows native) and API access (Docker/cross-platform)
+# Fetches owned games from Amazon Games using Nile CLI
+# https://github.com/imLinguin/nile
 
 import json
-import sqlite3
-import requests
+import subprocess
+import shutil
 import os
-import hashlib
-import secrets
-import base64
 from pathlib import Path
-from datetime import datetime
-from settings import get_amazon_credentials, set_setting, AMAZON_ACCESS_TOKEN
 
 DATABASE_PATH = Path(__file__).parent.parent / "game_library.db"
 
-# Amazon OAuth endpoints (from Playnite reverse engineering)
-AMAZON_SIGNIN_URL = "https://www.amazon.com/ap/signin"
-AMAZON_REGISTER_URL = "https://api.amazon.com/auth/register"
-AMAZON_TOKEN_URL = "https://api.amazon.com/auth/token"
-API_ENTITLEMENTS = "https://gaming.amazon.com/api/distribution/entitlements"
-
-# Client credentials (from Amazon Games Launcher)
-# Note: LOGIN_CLIENT_ID has "device:" prefix, AUTH_CLIENT_ID does not
-LOGIN_CLIENT_ID = "device:3733646238643238366332613932346432653737653161663637373636363435234132554d56484f58375550345637"
-AUTH_CLIENT_ID = "3733646238643238366332613932346432653737653161663637373636363435234132554d56484f58375550345637"
-DEVICE_TYPE = "A2UMVHOX7UP4V7"
-
-# Request headers for device registration
-REGISTER_HEADERS = {
-    "User-Agent": "AGSLauncher/1.0.0",
-    "Content-Type": "application/json",
-}
-
-# Request headers for API calls
-API_HEADERS = {
-    "Accept": "application/json",
-    "Accept-Language": "en-US,en;q=0.9",
-    "User-Agent": "com.amazon.agslauncher.win/3.0.9495.3",
-    "Content-Type": "application/json",
-}
-
-# Default Windows path for Amazon Games SQLite database
-AMAZON_DB_DEFAULT_PATH = Path(os.environ.get("LOCALAPPDATA", "")) / "Amazon Games" / "Data" / "Games" / "Sql" / "GameInstallInfo.sqlite"
+# Nile config path - same logic as Nile uses
+NILE_CONFIG_PATH = Path(
+    os.environ.get("NILE_CONFIG_PATH") or
+    os.environ.get("XDG_CONFIG_HOME", Path.home() / ".config")
+) / "nile"
 
 
-def generate_code_verifier():
-    """Generate a random code verifier for PKCE."""
-    # Generate 32 random bytes and base64url encode them (gives ~43 chars)
-    random_bytes = secrets.token_bytes(32)
-    verifier = base64.urlsafe_b64encode(random_bytes).decode('utf-8').rstrip('=')
-    return verifier[:43]  # Ensure 43 chars like Playnite
-
-
-def generate_code_challenge(verifier):
-    """Generate SHA256 code challenge from verifier."""
-    digest = hashlib.sha256(verifier.encode('ascii')).digest()
-    challenge = base64.urlsafe_b64encode(digest).decode('ascii').rstrip('=')
-    return challenge
-
-
-def get_login_url():
-    """Generate the Amazon login URL for OAuth."""
-    code_verifier = generate_code_verifier()
-    code_challenge = generate_code_challenge(code_verifier)
-
-    params = {
-        "openid.ns": "http://specs.openid.net/auth/2.0",
-        "openid.claimed_id": "http://specs.openid.net/auth/2.0/identifier_select",
-        "openid.identity": "http://specs.openid.net/auth/2.0/identifier_select",
-        "openid.mode": "checkid_setup",
-        "openid.oa2.scope": "device_auth_access",
-        "openid.ns.oa2": "http://www.amazon.com/ap/ext/oauth/2",
-        "openid.oa2.response_type": "code",
-        "openid.oa2.code_challenge_method": "S256",
-        "openid.oa2.code_challenge": code_challenge,
-        "openid.oa2.client_id": LOGIN_CLIENT_ID,
-        "openid.return_to": "https://www.amazon.com/ap/maplanding",
-        "openid.assoc_handle": "amzn_sonic_games_launcher",
-        "pageId": "amzn_sonic_games_launcher",
-        "language": "en_US",
-    }
-
-    query_string = "&".join(f"{k}={requests.utils.quote(str(v))}" for k, v in params.items())
-    login_url = f"{AMAZON_SIGNIN_URL}?{query_string}"
-
-    return login_url, code_verifier
-
-
-def get_device_serial():
-    """Generate a unique device serial."""
-    import uuid
-    # Generate a consistent device ID based on machine
-    try:
-        # Try to get a consistent machine ID
-        machine_id = str(uuid.getnode())  # MAC address based
-    except:
-        machine_id = str(uuid.uuid4())
-    return hashlib.sha256(machine_id.encode()).hexdigest()[:32].upper()
-
-
-def extract_auth_code_from_url(url):
-    """Extract the authorization code from a redirect URL."""
-    from urllib.parse import urlparse, parse_qs
+def _run_nile_command(args, timeout=60):
+    """Run a Nile CLI command and return the result."""
+    nile_path = shutil.which("nile")
+    if not nile_path:
+        return None, "Nile is not installed. Install it with: pip install nile"
 
     try:
-        parsed = urlparse(url)
-        params = parse_qs(parsed.query)
+        result = subprocess.run(
+            [nile_path] + args,
+            capture_output=True,
+            text=True,
+            timeout=timeout,
+        )
+        return result, None
+    except subprocess.TimeoutExpired:
+        return None, "Command timed out"
+    except Exception as e:
+        return None, str(e)
 
-        # Look for the authorization code in various possible parameter names
-        for key in ["openid.oa2.authorization_code", "authorization_code", "code"]:
-            if key in params:
-                return params[key][0]
 
-        return None
-    except Exception:
-        return None
+def is_nile_installed():
+    """Check if Nile is installed and available."""
+    return shutil.which("nile") is not None
 
 
-def exchange_code_for_tokens(auth_code, code_verifier):
-    """Exchange authorization code for access tokens via device registration."""
+def start_auth():
+    """Start Amazon authentication - returns login URL and credentials for registration."""
+    result, error = _run_nile_command(["auth", "--login", "--non-interactive"])
+
+    if error:
+        return None, error
+
+    # Nile outputs JSON with login URL and credentials
     try:
-        device_serial = get_device_serial()
-
-        # Get OS version
-        import platform
-        os_version = platform.version() or "10.0.19041.0"
-
-        # Payload structure matching Playnite's implementation
-        payload = {
-            "auth_data": {
-                "use_global_authentication": False,
-                "authorization_code": auth_code,
-                "code_verifier": code_verifier,
-                "code_algorithm": "SHA-256",
-                "client_id": AUTH_CLIENT_ID,  # Without "device:" prefix
-                "client_domain": "DeviceLegacy",
-            },
-            "registration_data": {
-                "app_name": "AGSLauncher for Windows",
-                "app_version": "1.0.0",
-                "device_model": "Windows",
-                "device_serial": device_serial,
-                "device_type": DEVICE_TYPE,
-                "domain": "Device",
-                "os_version": os_version,
-            },
-            "requested_extensions": ["customer_info", "device_info"],
-            "requested_token_type": ["bearer", "mac_dms"],
-        }
-
-        response = requests.post(AMAZON_REGISTER_URL, json=payload, headers=REGISTER_HEADERS)
-
-        if response.status_code != 200:
-            print(f"  Token exchange failed: {response.status_code}")
-            print(f"  Response: {response.text[:500]}")
-            return None
-
-        data = response.json()
-
-        # Extract tokens from response
-        success = data.get("response", {}).get("success", {})
-        tokens = success.get("tokens", {}).get("bearer", {})
-
-        if not tokens:
-            print("  No tokens in response")
-            return None
-
+        data = json.loads(result.stdout)
         return {
-            "access_token": tokens.get("access_token"),
-            "refresh_token": tokens.get("refresh_token"),
-            "expires_in": tokens.get("expires_in"),
+            "login_url": data.get("login_url") or data.get("url"),
+            "client_id": data.get("client_id"),
+            "code_verifier": data.get("code_verifier"),
+            "serial": data.get("serial"),
+        }, None
+    except json.JSONDecodeError:
+        # Try to extract URL from text output
+        output = result.stdout + result.stderr
+        for line in output.split("\n"):
+            if "amazon.com" in line:
+                url_start = line.find("http")
+                if url_start != -1:
+                    return {"login_url": line[url_start:].strip()}, None
+
+        return None, f"Failed to parse auth response: {result.stdout or result.stderr}"
+
+
+def complete_auth(code, client_id=None, code_verifier=None, serial=None):
+    """Complete Amazon authentication with the authorization code."""
+    args = ["register", "--code", code]
+
+    if client_id:
+        args.extend(["--client-id", client_id])
+    if code_verifier:
+        args.extend(["--code-verifier", code_verifier])
+    if serial:
+        args.extend(["--serial", serial])
+
+    result, error = _run_nile_command(args, timeout=30)
+
+    if error:
+        return False, error
+
+    if result.returncode != 0:
+        return False, result.stderr or result.stdout or "Registration failed"
+
+    return True, "Authentication successful"
+
+
+def check_auth_status():
+    """Check if user is authenticated with Amazon via Nile."""
+    result, error = _run_nile_command(["auth", "--status"])
+
+    if error:
+        return {"authenticated": False, "error": error}
+
+    if result.returncode != 0:
+        return {"authenticated": False, "error": result.stderr}
+
+    # Nile outputs JSON: {"Username": "...", "LoggedIn": true/false}
+    try:
+        data = json.loads(result.stdout)
+        return {
+            "authenticated": data.get("LoggedIn", False),
+            "username": data.get("Username"),
         }
-
-    except Exception as e:
-        print(f"  Error exchanging code: {e}")
-        return None
-
-
-def refresh_tokens(refresh_token):
-    """Refresh access token using refresh token."""
-    try:
-        payload = {
-            "source_token": refresh_token,
-            "source_token_type": "refresh_token",
-            "requested_token_type": "access_token",
-            "app_name": "AGSLauncher for Windows",
-            "app_version": "1.0.0",
-        }
-
-        response = requests.post(AMAZON_TOKEN_URL, json=payload, headers=REGISTER_HEADERS)
-
-        if response.status_code != 200:
-            return None
-
-        data = response.json()
-        return data.get("access_token")
-
-    except Exception as e:
-        print(f"  Error refreshing token: {e}")
-        return None
+    except json.JSONDecodeError:
+        # Fallback to text parsing
+        output = result.stdout.lower()
+        if "true" in output or "logged in" in output:
+            return {"authenticated": True}
+        return {"authenticated": False, "message": result.stdout.strip()}
 
 
-def get_local_database_path():
-    """Get the path to the local Amazon Games SQLite database."""
-    creds = get_amazon_credentials()
-    custom_path = creds.get("db_path")
+def sync_library():
+    """Sync the Amazon Games library using Nile."""
+    result, error = _run_nile_command(["library", "sync"], timeout=120)
 
-    if custom_path:
-        return Path(custom_path)
+    if error:
+        return False, error
 
-    if AMAZON_DB_DEFAULT_PATH.exists():
-        return AMAZON_DB_DEFAULT_PATH
+    if result.returncode != 0:
+        return False, result.stderr or "Failed to sync library"
 
-    return None
+    return True, "Library synced successfully"
 
 
-def get_games_from_local_db():
-    """Fetch installed games from the local Amazon Games SQLite database."""
-    db_path = get_local_database_path()
+def _read_library_file():
+    """Read the library directly from Nile's library.json file."""
+    library_file = NILE_CONFIG_PATH / "library.json"
 
-    if not db_path or not db_path.exists():
-        print("  Amazon Games local database not found")
+    if not library_file.exists():
         return None
 
     try:
-        conn = sqlite3.connect(db_path)
-        conn.row_factory = sqlite3.Row
-        cursor = conn.cursor()
-
-        cursor.execute("SELECT * FROM DbSet")
-        rows = cursor.fetchall()
-
-        games = []
-        for row in rows:
-            game_data = dict(row)
-            game = {
-                "product_id": game_data.get("Id") or game_data.get("ProductId"),
-                "name": game_data.get("ProductTitle") or game_data.get("Title"),
-                "installed": game_data.get("Installed", 0) == 1,
-                "install_directory": game_data.get("InstallDirectory"),
-                "install_date": game_data.get("InstallDate"),
-                "is_streaming": False,  # Local DB = installable games
-                "raw_data": game_data,
-            }
-
-            if game["name"]:
-                games.append(game)
-
-        conn.close()
-        return games
-
-    except Exception as e:
-        print(f"  Error reading Amazon Games database: {e}")
+        with open(library_file, "r") as f:
+            return json.load(f)
+    except (json.JSONDecodeError, IOError) as e:
+        print(f"  Error reading library file: {e}")
         return None
-
-
-def get_entitlements_from_api(access_token):
-    """Fetch game entitlements from Amazon Gaming API."""
-    try:
-        import uuid
-        games = []
-        next_token = None
-
-        # Headers matching Playnite exactly
-        headers = {
-            "User-Agent": "com.amazon.agslauncher.win/3.0.9495.3",
-            "Content-Type": "application/json",
-            "X-Amz-Target": "com.amazon.animusdistributionservice.entitlement.AnimusEntitlementsService.GetEntitlements",
-            "x-amzn-token": access_token,
-            "Expect": "100-continue",
-            "Content-Encoding": "amz-1.0",
-        }
-
-        while True:
-            # Generate a random hardware hash (GUID without hyphens)
-            hardware_hash = uuid.uuid4().hex
-
-            # Payload matching Playnite's EntitlementsRequest class
-            payload = {
-                "Operation": "GetEntitlements",
-                "clientId": "Sonic",
-                "syncPoint": 0,
-                "maxResults": 500,
-                "keyId": "d5dc8b8b-86c8-4fc4-ae93-18c0def5314d",
-                "hardwareHash": hardware_hash,
-                "productIdFilter": None,
-                "disableStateFilter": True,
-            }
-
-            if next_token:
-                payload["nextToken"] = next_token
-
-            response = requests.post(API_ENTITLEMENTS, json=payload, headers=headers)
-
-            if response.status_code != 200:
-                print(f"  Entitlements API failed: {response.status_code}")
-                try:
-                    print(f"  Response: {response.text[:200]}")
-                except:
-                    pass
-                break
-
-            data = response.json()
-            entitlements = data.get("entitlements", [])
-
-            for ent in entitlements:
-                product = ent.get("product", {})
-                product_line = product.get("productLine", "")
-
-                # Skip Twitch fuel entitlements
-                if product_line == "Twitch:FuelEntitlement":
-                    continue
-
-                # Determine if this is a streaming game (Luna)
-                is_streaming = "Luna" in product_line or ent.get("channelId") == "Luna"
-
-                game = {
-                    "product_id": product.get("id") or product.get("asin"),
-                    "name": product.get("title"),
-                    "publisher": product.get("publisher"),
-                    "developer": product.get("developer"),
-                    "product_line": product_line,
-                    "icon_url": product.get("iconUrl"),
-                    "is_streaming": is_streaming,
-                    "raw_data": ent,
-                }
-
-                if game["name"]:
-                    games.append(game)
-
-            next_token = data.get("nextToken")
-            if not next_token:
-                break
-
-        return games
-
-    except Exception as e:
-        print(f"  Error fetching entitlements: {e}")
-        return []
-
-
-def get_stored_tokens():
-    """Get stored OAuth tokens."""
-    creds = get_amazon_credentials()
-    token_data = creds.get("access_token")
-
-    if not token_data:
-        return None, None
-
-    # Check if it's JSON (new format with both tokens) or just access token
-    try:
-        data = json.loads(token_data)
-        return data.get("access_token"), data.get("refresh_token")
-    except (json.JSONDecodeError, TypeError):
-        # Old format - just access token
-        return token_data, None
-
-
-def save_tokens(access_token, refresh_token=None):
-    """Save OAuth tokens."""
-    if refresh_token:
-        token_data = json.dumps({
-            "access_token": access_token,
-            "refresh_token": refresh_token,
-        })
-    else:
-        token_data = access_token
-
-    set_setting(AMAZON_ACCESS_TOKEN, token_data)
 
 
 def get_amazon_library():
-    """Fetch all games from Amazon Games library."""
-    all_games = []
-    seen_ids = set()
-
-    # Method 1: Try local database first (Windows native)
-    print("  Checking for local Amazon Games database...")
-    local_games = get_games_from_local_db()
-    if local_games:
-        print(f"  Found {len(local_games)} games in local database")
-        for game in local_games:
-            product_id = game.get("product_id")
-            if product_id and product_id not in seen_ids:
-                seen_ids.add(product_id)
-                all_games.append(game)
-
-    # Method 2: Try API with OAuth tokens
-    print("  Checking for OAuth tokens...")
-    access_token, refresh_token = get_stored_tokens()
-
-    if access_token:
-        print("  Fetching entitlements from Amazon Gaming API...")
-        api_games = get_entitlements_from_api(access_token)
-
-        # If access token expired, try refresh
-        if not api_games and refresh_token:
-            print("  Access token may be expired, trying refresh...")
-            new_access_token = refresh_tokens(refresh_token)
-            if new_access_token:
-                save_tokens(new_access_token, refresh_token)
-                api_games = get_entitlements_from_api(new_access_token)
-
-        if api_games:
-            print(f"  Found {len(api_games)} games via API")
-            streaming_count = sum(1 for g in api_games if g.get("is_streaming"))
-            installable_count = len(api_games) - streaming_count
-            print(f"    ({installable_count} installable, {streaming_count} streaming)")
-
-            for game in api_games:
-                product_id = game.get("product_id")
-                if product_id and product_id not in seen_ids:
-                    seen_ids.add(product_id)
-                    all_games.append(game)
-    elif not local_games:
-        print("Error: Amazon Games not configured")
-        print("\nTo set up Amazon Games, use the 'Authenticate' button in Settings")
-        print("This will open a browser for you to log in to Amazon")
+    """Fetch all games from Amazon Games library via Nile."""
+    if not is_nile_installed():
+        print("Error: Nile is not installed")
+        print("Install it with: pip install nile")
+        print("Then authenticate with: nile auth --login")
         return None
 
-    if not all_games:
-        print("  No Amazon games found")
+    # Check authentication status
+    status = check_auth_status()
+    if not status.get("authenticated"):
+        print("Error: Not authenticated with Amazon Games")
+        print("Authenticate with: nile auth --login")
         return None
 
-    return all_games
+    # Sync library first
+    print("  Syncing Amazon Games library...")
+    success, message = sync_library()
+    if not success:
+        print(f"  Warning: Could not sync library: {message}")
+        # Continue anyway - might have cached data
 
+    # Read library from Nile's library.json file (more reliable than CLI output)
+    games_data = _read_library_file()
 
-def authenticate_amazon(auth_code, code_verifier):
-    """Complete Amazon authentication with authorization code."""
-    print("Exchanging authorization code for tokens...")
-    tokens = exchange_code_for_tokens(auth_code, code_verifier)
+    if games_data is None:
+        # Fall back to CLI command
+        print("  Reading library via CLI...")
+        result, error = _run_nile_command(["library", "list", "--json"])
 
-    if not tokens:
-        return False, "Failed to exchange authorization code"
+        if error:
+            print(f"  Error getting library: {error}")
+            return None
 
-    # Save tokens
-    save_tokens(tokens["access_token"], tokens.get("refresh_token"))
+        if result.returncode != 0:
+            print(f"  Error getting library: {result.stderr}")
+            return None
 
-    # Verify by fetching entitlements
-    games = get_entitlements_from_api(tokens["access_token"])
-    if games:
-        return True, f"Successfully authenticated! Found {len(games)} games."
-    else:
-        return True, "Authenticated, but couldn't fetch games. Token saved anyway."
-
-
-def import_to_database(games):
-    """Import Amazon games to the database."""
-    conn = sqlite3.connect(DATABASE_PATH)
-    cursor = conn.cursor()
-
-    count = 0
-    for game in games:
         try:
-            developers = [game.get("developer")] if game.get("developer") else None
-            publishers = [game.get("publisher")] if game.get("publisher") else None
+            games_data = json.loads(result.stdout)
+        except json.JSONDecodeError as e:
+            print(f"  Error parsing library JSON: {e}")
+            return None
 
-            # Store streaming flag in extra_data
-            extra_data = game.get("raw_data", {})
-            extra_data["is_streaming"] = game.get("is_streaming", False)
+    # Convert Nile format to our format
+    # Nile stores games with nested product info from the Amazon API
+    games = []
+    for game in games_data:
+        # Handle nested product structure (from API response)
+        product = game.get("product", game)
+        product_detail = game.get("productDetail", {})
+        details = product_detail.get("details", {})
 
-            cursor.execute(
-                """INSERT OR REPLACE INTO games (
-                    name, store, store_id, cover_image, icon,
-                    developers, publishers, extra_data, updated_at
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)""",
-                (
-                    game.get("name"),
-                    "amazon",
-                    game.get("product_id"),
-                    game.get("icon_url"),
-                    game.get("icon_url"),
-                    json.dumps(developers) if developers else None,
-                    json.dumps(publishers) if publishers else None,
-                    json.dumps(extra_data),
-                    datetime.now().isoformat(),
-                ),
-            )
-            count += 1
-        except Exception as e:
-            print(f"  Error importing {game.get('name')}: {e}")
+        # Get the title - try multiple locations
+        title = (
+            product.get("title") or
+            details.get("title") or
+            game.get("title")
+        )
 
-    conn.commit()
-    conn.close()
-    return count
+        if not title:
+            continue
+
+        # Get product ID
+        product_id = (
+            product.get("id") or
+            product.get("asin") or
+            game.get("id")
+        )
+
+        # Get artwork URLs
+        icon_url = None
+        if product_detail.get("iconUrl"):
+            icon_url = product_detail.get("iconUrl")
+        elif details.get("logoUrl"):
+            icon_url = details.get("logoUrl")
+
+        # Get developer/publisher from details
+        developer = details.get("developer")
+        publisher = details.get("publisher")
+
+        game_entry = {
+            "product_id": product_id,
+            "name": title,
+            "developer": developer,
+            "publisher": publisher,
+            "icon_url": icon_url,
+            "is_streaming": False,
+            "raw_data": game,
+        }
+
+        games.append(game_entry)
+
+    print(f"  Found {len(games)} Amazon games")
+    return games if games else None
+
+
+def logout():
+    """Log out from Amazon Games via Nile."""
+    result, error = _run_nile_command(["auth", "--logout"])
+
+    if error:
+        return False, error
+
+    if result.returncode != 0:
+        return False, result.stderr or "Failed to logout"
+
+    return True, "Logged out successfully"
 
 
 def main():
     import argparse
 
-    parser = argparse.ArgumentParser(description="Import Amazon Games library")
+    parser = argparse.ArgumentParser(description="Import Amazon Games library via Nile")
     parser.add_argument("--export", type=str, help="Export to JSON file instead of database")
     parser.add_argument("--auth", action="store_true", help="Start authentication flow")
+    parser.add_argument("--status", action="store_true", help="Check authentication status")
+    parser.add_argument("--logout", action="store_true", help="Log out from Amazon")
     args = parser.parse_args()
 
-    if args.auth:
-        print("Amazon Games Authentication")
-        print("=" * 60)
-        login_url, code_verifier = get_login_url()
-        print("\n1. Open this URL in your browser:\n")
-        print(login_url)
-        print("\n2. Log in to Amazon")
-        print("3. After login, you'll be redirected to a page with a URL like:")
-        print("   https://www.amazon.com/ap/maplanding?openid.oa2.authorization_code=...")
-        print("\n4. Copy the 'authorization_code' value from the URL and paste it here:")
-
-        auth_code = input("\nAuthorization code: ").strip()
-        if auth_code:
-            success, message = authenticate_amazon(auth_code, code_verifier)
-            print(f"\n{message}")
+    if not is_nile_installed():
+        print("Error: Nile is not installed")
+        print("Install it with: pip install nile")
+        print("For more info: https://github.com/imLinguin/nile")
         return
 
-    print("Amazon Games Library Import")
+    if args.status:
+        status = check_auth_status()
+        if status.get("authenticated"):
+            print("Authenticated with Amazon Games")
+        else:
+            print("Not authenticated")
+            if status.get("error"):
+                print(f"Error: {status['error']}")
+        return
+
+    if args.logout:
+        success, message = logout()
+        print(message)
+        return
+
+    if args.auth:
+        print("Amazon Games Authentication via Nile")
+        print("=" * 60)
+        print("\nStarting Nile authentication...")
+        print("This will open a browser window for Amazon login.\n")
+
+        result, error = _run_nile_command(["auth", "--login"], timeout=300)
+        if error:
+            print(f"Error: {error}")
+        elif result.returncode != 0:
+            print(f"Authentication may have failed: {result.stderr}")
+        else:
+            print("Authentication complete!")
+        return
+
+    print("Amazon Games Library Import via Nile")
     print("=" * 60)
 
     games = get_amazon_library()
@@ -520,14 +309,49 @@ def main():
         print("Failed to fetch Amazon Games library")
         return
 
-    print(f"\nFound {len(games)} unique games")
+    print(f"\nFound {len(games)} games")
 
     if args.export:
         with open(args.export, "w") as f:
             json.dump(games, f, indent=2, default=str)
         print(f"Exported to {args.export}")
     else:
-        count = import_to_database(games)
+        # Import to database
+        import sqlite3
+        from datetime import datetime
+
+        conn = sqlite3.connect(DATABASE_PATH)
+        cursor = conn.cursor()
+
+        count = 0
+        for game in games:
+            try:
+                developers = [game.get("developer")] if game.get("developer") else None
+                publishers = [game.get("publisher")] if game.get("publisher") else None
+
+                cursor.execute(
+                    """INSERT OR REPLACE INTO games (
+                        name, store, store_id, cover_image, icon,
+                        developers, publishers, extra_data, updated_at
+                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                    (
+                        game.get("name"),
+                        "amazon",
+                        game.get("product_id"),
+                        game.get("icon_url"),
+                        game.get("icon_url"),
+                        json.dumps(developers) if developers else None,
+                        json.dumps(publishers) if publishers else None,
+                        json.dumps(game.get("raw_data", {})),
+                        datetime.now().isoformat(),
+                    ),
+                )
+                count += 1
+            except Exception as e:
+                print(f"  Error importing {game.get('name')}: {e}")
+
+        conn.commit()
+        conn.close()
         print(f"Imported {count} games to database")
 
 

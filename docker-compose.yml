@@ -7,6 +7,7 @@ services:
     volumes:
       - ./data:/data
       - ./data/legendary:/root/.config/legendary
+      - ./data/nile:/root/.config/nile
       - ${GOG_DB_DIR:-./.empty}:/gog:ro
     environment:
       - DATABASE_PATH=/data/game_library.db
@@ -26,7 +27,5 @@ services:
       - GOG_DB_PATH=/gog/galaxy-2.0.db
       # Battle.net configuration
       - BATTLENET_SESSION_COOKIE=${BATTLENET_SESSION_COOKIE:-}
-      # Amazon Games configuration
-      - AMAZON_ACCESS_TOKEN=${AMAZON_ACCESS_TOKEN:-}
-      - AMAZON_DB_PATH=${AMAZON_DB_PATH:-}
+      # Amazon Games - uses Nile (pip install nile && nile auth --login)
     restart: unless-stopped

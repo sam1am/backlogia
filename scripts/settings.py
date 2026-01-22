@@ -18,8 +18,6 @@ ITCH_API_KEY = "itch_api_key"
 HUMBLE_SESSION_COOKIE = "humble_session_cookie"
 BATTLENET_SESSION_COOKIE = "battlenet_session_cookie"
 GOG_DB_PATH = "gog_db_path"
-AMAZON_ACCESS_TOKEN = "amazon_access_token"
-AMAZON_DB_PATH = "amazon_db_path"
 
 # Map setting keys to environment variable names
 ENV_VAR_MAP = {
@@ -31,8 +29,6 @@ ENV_VAR_MAP = {
     HUMBLE_SESSION_COOKIE: "HUMBLE_SESSION_COOKIE",
     BATTLENET_SESSION_COOKIE: "BATTLENET_SESSION_COOKIE",
     GOG_DB_PATH: "GOG_DB_PATH",
-    AMAZON_ACCESS_TOKEN: "AMAZON_ACCESS_TOKEN",
-    AMAZON_DB_PATH: "AMAZON_DB_PATH",
 }
 
 
@@ -160,12 +156,4 @@ def get_gog_settings():
     """Get GOG Galaxy settings."""
     return {
         "db_path": get_setting(GOG_DB_PATH),
-    }
-
-
-def get_amazon_credentials():
-    """Get Amazon Games credentials."""
-    return {
-        "access_token": get_setting(AMAZON_ACCESS_TOKEN),
-        "db_path": get_setting(AMAZON_DB_PATH),
     }

@@ -1116,23 +1116,23 @@
                             <div class="form-group">
                                 <label>Amazon Authentication</label>
                                 <div id="amazon-auth-status" class="auth-status">Checking status...</div>
-                                <div id="amazon-auth-actions">
+                                <div id="amazon-auth-actions" style="margin-top: 10px;">
                                     <button type="button" class="btn btn-primary" id="amazon-auth-btn" onclick="startAmazonAuth()">
                                         Authenticate with Amazon
                                     </button>
                                 </div>
-                                <div id="amazon-auth-flow" style="display: none;">
+                                <div id="amazon-auth-flow" style="display: none; margin-top: 15px;">
                                     <div class="instructions-box">
                                         <ol>
                                             <li>Click the button above to open Amazon login</li>
                                             <li>Log in to your Amazon account</li>
-                                            <li>After login, you'll see a "page not found" - <strong>this is expected!</strong></li>
+                                            <li>After login, you'll see a blank page - this is expected</li>
                                             <li>Copy the <strong>entire URL</strong> from your browser's address bar</li>
                                             <li>Paste it below and click "Complete Authentication"</li>
                                         </ol>
                                     </div>
                                     <div class="form-group" style="margin-top: 15px;">
-                                        <label for="amazon_auth_code">Redirect URL (or just the authorization code)</label>
+                                        <label for="amazon_auth_code">Redirect URL or Authorization Code</label>
                                         <input type="text" id="amazon_auth_code" placeholder="Paste the full URL from your browser">
                                     </div>
                                     <button type="button" class="btn btn-primary" onclick="completeAmazonAuth()">
@@ -1141,19 +1141,6 @@
                                     <button type="button" class="btn btn-secondary" onclick="cancelAmazonAuth()">
                                         Cancel
                                     </button>
-                                </div>
-                                <div class="help-text" style="margin-top: 10px;">
-                                    Authentication gives access to your full Amazon Games library including Luna streaming games.
-                                </div>
-                            </div>
-                            <div class="form-group">
-                                <label for="amazon_db_path">Local Database Path (Optional)</label>
-                                <input type="text" id="amazon_db_path" name="amazon_db_path"
-                                       value="{{ settings.amazon_db_path }}"
-                                       placeholder="Auto-detected on Windows">
-                                <div class="help-text">
-                                    On Windows with Amazon Games installed, the local database is auto-detected.
-                                    Override the path here if needed (e.g., for Docker volume mounts).
                                 </div>
                             </div>
                         </div>
@@ -1364,13 +1351,17 @@
             fetch('/api/amazon/auth/status')
             .then(response => response.json())
             .then(data => {
-                if (data.authenticated) {
-                    statusEl.innerHTML = '<span style="color: #4caf50;">✓ Authenticated</span>' +
-                        (data.game_count ? ` (${data.game_count} games found)` : '');
-                    authBtn.textContent = 'Re-authenticate';
+                if (!data.nile_installed) {
+                    statusEl.innerHTML = '<span style="color: #f44336;">Error: Nile not available in container</span>';
+                    if (authBtn) authBtn.disabled = true;
+                } else if (data.authenticated) {
+                    statusEl.innerHTML = '<span style="color: #4caf50;">Authenticated</span>' +
+                        (data.username && data.username !== '<not logged in>' ? ` as ${data.username}` : '') +
+                        ' - Ready to sync';
+                    if (authBtn) authBtn.textContent = 'Re-authenticate';
                 } else {
                     statusEl.innerHTML = '<span style="color: #888;">Not authenticated</span>';
-                    authBtn.textContent = 'Authenticate with Amazon';
+                    if (authBtn) authBtn.textContent = 'Authenticate with Amazon';
                 }
             })
             .catch(error => {
@@ -1384,16 +1375,14 @@
             fetch('/api/amazon/auth/start', { method: 'POST' })
             .then(response => response.json())
             .then(data => {
-                if (data.success) {
+                if (data.success && data.login_url) {
                     amazonSessionId = data.session_id;
-                    // Open login URL in new window
                     window.open(data.login_url, '_blank', 'width=500,height=700');
-                    // Show the auth flow UI
                     document.getElementById('amazon-auth-flow').style.display = 'block';
                     document.getElementById('amazon-auth-btn').style.display = 'none';
-                    showStatus('Complete the login in the popup window, then paste the authorization code below.', 'loading');
+                    showStatus('Complete the login in the popup window, then paste the redirect URL below.', 'loading');
                 } else {
-                    showStatus('Failed to start authentication: ' + data.error, 'error');
+                    showStatus('Failed to start authentication: ' + (data.error || 'Unknown error'), 'error');
                 }
             })
             .catch(error => {
@@ -1409,12 +1398,6 @@
                 return;
             }
 
-            if (!amazonSessionId) {
-                showStatus('Session expired. Please start authentication again.', 'error');
-                cancelAmazonAuth();
-                return;
-            }
-
             showStatus('Completing Amazon authentication...', 'loading');
 
             fetch('/api/amazon/auth/complete', {
@@ -1425,11 +1408,11 @@
             .then(response => response.json())
             .then(data => {
                 if (data.success) {
-                    showStatus(data.message, 'success');
+                    showStatus(data.message || 'Authentication successful!', 'success');
                     cancelAmazonAuth();
                     checkAmazonStatus();
                 } else {
-                    showStatus('Authentication failed: ' + data.error, 'error');
+                    showStatus('Authentication failed: ' + (data.error || 'Unknown error'), 'error');
                 }
             })
             .catch(error => {
@@ -1442,6 +1425,7 @@
             document.getElementById('amazon-auth-btn').style.display = 'inline-block';
             document.getElementById('amazon_auth_code').value = '';
             amazonSessionId = null;
+            clearStatus();
         }
 
         // Collapsible sections
