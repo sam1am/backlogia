@@ -37,6 +37,11 @@ class BulkGameIdsRequest(BaseModel):
     game_ids: list[int]
 
 
+class BulkAddToCollectionRequest(BaseModel):
+    game_ids: list[int]
+    collection_id: int
+
+
 @router.post("/api/game/{game_id}/igdb")
 def update_igdb(game_id: int, body: UpdateIgdbRequest, conn: sqlite3.Connection = Depends(get_db)):
     """Update IGDB ID for a game."""
@@ -314,3 +319,38 @@ def bulk_nsfw_games(body: BulkGameIdsRequest, conn: sqlite3.Connection = Depends
     conn.commit()
 
     return {"success": True, "updated": updated}
+
+
+@router.post("/api/games/bulk/add-to-collection")
+def bulk_add_to_collection(body: BulkAddToCollectionRequest, conn: sqlite3.Connection = Depends(get_db)):
+    """Add multiple games to a collection at once."""
+    game_ids = body.game_ids
+    collection_id = body.collection_id
+
+    if not game_ids:
+        raise HTTPException(status_code=400, detail="No games selected")
+
+    cursor = conn.cursor()
+
+    # Check if collection exists
+    cursor.execute("SELECT id FROM collections WHERE id = ?", (collection_id,))
+    if not cursor.fetchone():
+        raise HTTPException(status_code=404, detail="Collection not found")
+
+    # Add games to collection (ignore duplicates)
+    added = 0
+    for game_id in game_ids:
+        cursor.execute(
+            "INSERT OR IGNORE INTO collection_games (collection_id, game_id) VALUES (?, ?)",
+            (collection_id, game_id)
+        )
+        added += cursor.rowcount
+
+    # Update collection's updated_at
+    cursor.execute(
+        "UPDATE collections SET updated_at = CURRENT_TIMESTAMP WHERE id = ?",
+        (collection_id,)
+    )
+    conn.commit()
+
+    return {"success": True, "added": added}

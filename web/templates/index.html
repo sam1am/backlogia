@@ -823,6 +823,276 @@
             opacity: 0.5;
             cursor: not-allowed;
         }
+
+        .action-btn.collection {
+            background: rgba(102, 126, 234, 0.2);
+            color: #667eea;
+            border: 1px solid rgba(102, 126, 234, 0.3);
+        }
+
+        .action-btn.collection:hover {
+            background: rgba(102, 126, 234, 0.3);
+        }
+
+        /* Collection Modal */
+        .collection-modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.8);
+            z-index: 1001;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .collection-modal-overlay.active {
+            display: flex;
+        }
+
+        .collection-modal {
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            border-radius: 16px;
+            padding: 25px;
+            max-width: 400px;
+            width: 90%;
+            max-height: 80vh;
+            overflow-y: auto;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .collection-modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .collection-modal-title {
+            font-size: 1.2rem;
+            font-weight: 600;
+        }
+
+        .collection-modal-close {
+            background: none;
+            border: none;
+            color: #888;
+            font-size: 1.5rem;
+            cursor: pointer;
+            padding: 5px;
+        }
+
+        .collection-modal-close:hover {
+            color: #e4e4e4;
+        }
+
+        .collection-list {
+            margin-bottom: 20px;
+        }
+
+        .collection-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px 15px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 8px;
+            margin-bottom: 8px;
+            cursor: pointer;
+            transition: background 0.2s;
+            border: 1px solid transparent;
+        }
+
+        .collection-item:hover {
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        .collection-item.selected {
+            background: rgba(102, 126, 234, 0.2);
+            border: 1px solid rgba(102, 126, 234, 0.3);
+        }
+
+        .collection-radio {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            border: 2px solid #555;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+            transition: all 0.2s;
+        }
+
+        .collection-item.selected .collection-radio {
+            background: linear-gradient(90deg, #667eea, #764ba2);
+            border-color: transparent;
+        }
+
+        .collection-radio-inner {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: white;
+            display: none;
+        }
+
+        .collection-item.selected .collection-radio-inner {
+            display: block;
+        }
+
+        .collection-item-info {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .collection-item-name {
+            font-weight: 500;
+            color: #e4e4e4;
+        }
+
+        .collection-item-count {
+            font-size: 0.8rem;
+            color: #888;
+        }
+
+        .collection-empty {
+            text-align: center;
+            padding: 20px;
+            color: #888;
+        }
+
+        .collection-create-section {
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+            padding-top: 15px;
+        }
+
+        .collection-create-toggle {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            color: #667eea;
+            font-size: 0.9rem;
+            cursor: pointer;
+            padding: 8px 0;
+        }
+
+        .collection-create-toggle:hover {
+            color: #764ba2;
+        }
+
+        .collection-create-form {
+            display: none;
+            margin-top: 12px;
+        }
+
+        .collection-create-form.active {
+            display: block;
+        }
+
+        .collection-create-input {
+            width: 100%;
+            padding: 10px 14px;
+            border: none;
+            border-radius: 8px;
+            background: rgba(255, 255, 255, 0.1);
+            color: #e4e4e4;
+            font-size: 0.95rem;
+            margin-bottom: 10px;
+            box-sizing: border-box;
+        }
+
+        .collection-create-input::placeholder {
+            color: #666;
+        }
+
+        .collection-create-input:focus {
+            outline: none;
+            background: rgba(255, 255, 255, 0.15);
+            box-shadow: 0 0 0 2px rgba(102, 126, 234, 0.3);
+        }
+
+        .collection-create-btn {
+            width: 100%;
+            padding: 10px;
+            background: linear-gradient(90deg, #667eea, #764ba2);
+            border: none;
+            border-radius: 8px;
+            color: white;
+            font-size: 0.9rem;
+            font-weight: 600;
+            cursor: pointer;
+        }
+
+        .collection-create-btn:hover {
+            opacity: 0.9;
+        }
+
+        .collection-create-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .collection-modal-actions {
+            display: flex;
+            gap: 10px;
+            margin-top: 20px;
+            padding-top: 15px;
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .collection-modal-actions button {
+            flex: 1;
+            padding: 12px;
+            border: none;
+            border-radius: 8px;
+            font-size: 0.9rem;
+            font-weight: 600;
+            cursor: pointer;
+        }
+
+        .collection-add-btn {
+            background: linear-gradient(90deg, #667eea, #764ba2);
+            color: white;
+        }
+
+        .collection-add-btn:hover {
+            opacity: 0.9;
+        }
+
+        .collection-add-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .collection-cancel-btn {
+            background: rgba(255, 255, 255, 0.1);
+            color: #888;
+        }
+
+        .collection-cancel-btn:hover {
+            background: rgba(255, 255, 255, 0.2);
+            color: #e4e4e4;
+        }
+
+        .collection-status {
+            padding: 10px;
+            border-radius: 6px;
+            font-size: 0.85rem;
+            margin-top: 10px;
+        }
+
+        .collection-status.success {
+            background: rgba(76, 175, 80, 0.2);
+            color: #4caf50;
+        }
+
+        .collection-status.error {
+            background: rgba(244, 67, 54, 0.2);
+            color: #f44336;
+        }
     </style>
 </head>
 <body>
@@ -1007,6 +1277,9 @@
                 <strong id="selection-count">0</strong> selected
             </div>
             <div class="action-buttons">
+                <button class="action-btn collection" onclick="openCollectionModal()">
+                    Add to Collection
+                </button>
                 <button class="action-btn hide" onclick="bulkAction('hide')">
                     Hide Selected
                 </button>
@@ -1016,6 +1289,38 @@
                 <button class="action-btn cancel" onclick="clearSelection()">
                     Cancel
                 </button>
+            </div>
+        </div>
+
+        <!-- Collection Modal -->
+        <div id="collection-modal" class="collection-modal-overlay" onclick="closeCollectionModal(event)">
+            <div class="collection-modal" onclick="event.stopPropagation()">
+                <div class="collection-modal-header">
+                    <h2 class="collection-modal-title">Add to Collection</h2>
+                    <button class="collection-modal-close" onclick="closeCollectionModal()">&times;</button>
+                </div>
+
+                <div id="collection-list" class="collection-list">
+                    <div class="collection-empty">Loading...</div>
+                </div>
+
+                <div class="collection-create-section">
+                    <div class="collection-create-toggle" onclick="toggleCreateForm()">
+                        + Create new collection
+                    </div>
+                    <div id="collection-create-form" class="collection-create-form">
+                        <input type="text" id="new-collection-name" class="collection-create-input"
+                               placeholder="Collection name...">
+                        <button class="collection-create-btn" onclick="createCollection()">Create</button>
+                    </div>
+                </div>
+
+                <div class="collection-modal-actions">
+                    <button class="collection-cancel-btn" onclick="closeCollectionModal()">Cancel</button>
+                    <button id="collection-add-btn" class="collection-add-btn" onclick="addToSelectedCollection()" disabled>Add Games</button>
+                </div>
+
+                <div id="collection-status" class="collection-status" style="display: none;"></div>
             </div>
         </div>
         {% else %}
@@ -1316,6 +1621,206 @@
                 actionBtn.disabled = false;
                 actionBtn.textContent = originalText;
             }
+        }
+
+        // Collection Modal
+        let allCollections = [];
+        let selectedCollectionId = null;
+
+        function openCollectionModal() {
+            const modal = document.getElementById('collection-modal');
+            modal.classList.add('active');
+            loadCollections();
+        }
+
+        function closeCollectionModal(event) {
+            if (event && event.target !== document.getElementById('collection-modal')) return;
+            document.getElementById('collection-modal').classList.remove('active');
+            // Reset state
+            document.getElementById('collection-create-form').classList.remove('active');
+            document.getElementById('new-collection-name').value = '';
+            selectedCollectionId = null;
+            hideCollectionStatus();
+            updateAddButton();
+        }
+
+        function loadCollections() {
+            const listEl = document.getElementById('collection-list');
+            listEl.innerHTML = '<div class="collection-empty">Loading...</div>';
+            selectedCollectionId = null;
+            updateAddButton();
+
+            fetch('/api/collections')
+                .then(r => r.json())
+                .then(collections => {
+                    allCollections = collections;
+                    renderCollections();
+                })
+                .catch(error => {
+                    listEl.innerHTML = '<div class="collection-empty">Failed to load collections</div>';
+                });
+        }
+
+        function renderCollections() {
+            const listEl = document.getElementById('collection-list');
+
+            if (allCollections.length === 0) {
+                listEl.innerHTML = '<div class="collection-empty">No collections yet. Create one below!</div>';
+                return;
+            }
+
+            let html = '';
+            for (const collection of allCollections) {
+                const isSelected = collection.id === selectedCollectionId;
+                html += `
+                    <div class="collection-item ${isSelected ? 'selected' : ''}"
+                         data-collection-id="${collection.id}"
+                         onclick="selectCollection(${collection.id})">
+                        <div class="collection-radio">
+                            <div class="collection-radio-inner"></div>
+                        </div>
+                        <div class="collection-item-info">
+                            <div class="collection-item-name">${escapeHtml(collection.name)}</div>
+                            <div class="collection-item-count">${collection.game_count} game${collection.game_count !== 1 ? 's' : ''}</div>
+                        </div>
+                    </div>
+                `;
+            }
+            listEl.innerHTML = html;
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        function selectCollection(collectionId) {
+            selectedCollectionId = collectionId;
+            renderCollections();
+            updateAddButton();
+        }
+
+        function updateAddButton() {
+            const btn = document.getElementById('collection-add-btn');
+            btn.disabled = !selectedCollectionId;
+            if (selectedCollectionId) {
+                btn.textContent = `Add ${selectedGames.size} Game${selectedGames.size !== 1 ? 's' : ''}`;
+            } else {
+                btn.textContent = 'Add Games';
+            }
+        }
+
+        function toggleCreateForm() {
+            const form = document.getElementById('collection-create-form');
+            form.classList.toggle('active');
+            if (form.classList.contains('active')) {
+                document.getElementById('new-collection-name').focus();
+            }
+        }
+
+        function createCollection() {
+            const nameInput = document.getElementById('new-collection-name');
+            const name = nameInput.value.trim();
+
+            if (!name) {
+                showCollectionStatus('Please enter a collection name', 'error');
+                return;
+            }
+
+            const createBtn = document.querySelector('.collection-create-btn');
+            createBtn.disabled = true;
+            createBtn.textContent = 'Creating...';
+
+            fetch('/api/collections', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ name })
+            })
+            .then(response => response.json())
+            .then(data => {
+                createBtn.disabled = false;
+                createBtn.textContent = 'Create';
+
+                if (data.success) {
+                    nameInput.value = '';
+                    document.getElementById('collection-create-form').classList.remove('active');
+                    // Add to list and select it
+                    allCollections.push({
+                        id: data.id,
+                        name: data.name,
+                        game_count: 0
+                    });
+                    selectedCollectionId = data.id;
+                    renderCollections();
+                    updateAddButton();
+                    showCollectionStatus('Collection created!', 'success');
+                } else {
+                    showCollectionStatus(data.detail || 'Failed to create collection', 'error');
+                }
+            })
+            .catch(error => {
+                createBtn.disabled = false;
+                createBtn.textContent = 'Create';
+                showCollectionStatus('Network error', 'error');
+            });
+        }
+
+        async function addToSelectedCollection() {
+            if (!selectedCollectionId || selectedGames.size === 0) return;
+
+            const gameIds = Array.from(selectedGames).map(id => parseInt(id));
+            const addBtn = document.getElementById('collection-add-btn');
+
+            addBtn.disabled = true;
+            addBtn.textContent = 'Adding...';
+
+            try {
+                const response = await fetch('/api/games/bulk/add-to-collection', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        game_ids: gameIds,
+                        collection_id: selectedCollectionId
+                    })
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    showCollectionStatus(`Added ${data.added} game${data.added !== 1 ? 's' : ''} to collection!`, 'success');
+                    // Close modal and clear selection after a short delay
+                    setTimeout(() => {
+                        closeCollectionModal();
+                        clearSelection();
+                        toggleSelectMode();
+                    }, 1000);
+                } else {
+                    showCollectionStatus(data.detail || 'Failed to add games', 'error');
+                    addBtn.disabled = false;
+                    updateAddButton();
+                }
+            } catch (error) {
+                showCollectionStatus('Network error: ' + error.message, 'error');
+                addBtn.disabled = false;
+                updateAddButton();
+            }
+        }
+
+        function showCollectionStatus(message, type) {
+            const statusEl = document.getElementById('collection-status');
+            statusEl.textContent = message;
+            statusEl.className = 'collection-status ' + type;
+            statusEl.style.display = 'block';
+        }
+
+        function hideCollectionStatus() {
+            const statusEl = document.getElementById('collection-status');
+            statusEl.style.display = 'none';
         }
 
         // Prevent navigation when in select mode
