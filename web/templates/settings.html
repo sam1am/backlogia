@@ -582,6 +582,7 @@
         .sync-btn .icon.amazon { background: #ff9900; }
         .sync-btn .icon.ea { background: #ff4747; }
         .sync-btn .icon.ubisoft { background: #0070ff; }
+        .sync-btn .icon.local { background: #6b8e23; }
         .sync-btn .icon.all { background: linear-gradient(90deg, #667eea, #764ba2); }
         .sync-btn .icon.igdb { background: #9147ff; }
         .sync-btn .icon.metacritic { background: #ffcc34; color: #000; }
@@ -822,6 +823,13 @@
                         <div class="text">
                             <span>Sync EA</span>
                             <small>Import from EA App</small>
+                        </div>
+                    </button>
+                    <button class="sync-btn" onclick="syncStore('local')">
+                        <div class="icon local">L</div>
+                        <div class="text">
+                            <span>Sync Local</span>
+                            <small>Import from local folders</small>
                         </div>
                     </button>
                 </div>
@@ -1284,6 +1292,62 @@
                                 </ol>
                                 <p style="margin-top: 10px; color: #888; font-size: 0.85rem;">
                                     The bookmarklet will show a progress overlay and confirm when import is complete.
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Local Games -->
+                <div class="collapsible-section">
+                    <div class="collapsible-header" onclick="toggleCollapsible(this)">
+                        <div class="section-icon" style="background: #6b8e23;">L</div>
+                        <div class="header-text">
+                            <div class="section-title">Local Games</div>
+                            <div class="section-description">Import games from local folders</div>
+                        </div>
+                        <div class="collapsible-toggle">▼</div>
+                    </div>
+                    <div class="collapsible-content">
+                        <div class="collapsible-content-inner">
+                            <div class="form-group">
+                                <label>Configured Paths</label>
+                                {% if settings.local_games_paths %}
+                                <div style="background: rgba(0,0,0,0.2); padding: 12px 15px; border-radius: 8px; margin-top: 8px;">
+                                    {% for path in settings.local_games_paths.split(',') %}
+                                    {% if path.strip() %}
+                                    <div style="color: #4caf50; font-family: monospace; font-size: 0.9rem; padding: 4px 0;">
+                                        {{ path.strip() }}
+                                    </div>
+                                    {% endif %}
+                                    {% endfor %}
+                                </div>
+                                {% else %}
+                                <div style="color: #888; font-size: 0.9rem; margin-top: 8px;">
+                                    No local game paths configured
+                                </div>
+                                {% endif %}
+                                <div class="help-text" style="margin-top: 10px;">
+                                    Configure paths in your <code>.env</code> file using <code>LOCAL_GAMES_DIR_1</code>, <code>LOCAL_GAMES_DIR_2</code>, etc.
+                                </div>
+                            </div>
+                            <div class="instructions-box">
+                                <p style="margin-bottom: 8px; color: #e4e4e4;"><strong>Setup (in .env file):</strong></p>
+                                <pre style="background: rgba(0,0,0,0.3); padding: 10px; border-radius: 6px; margin-top: 8px; color: #ccc; font-size: 0.8rem; overflow-x: auto;">LOCAL_GAMES_DIR_1=/path/to/games
+LOCAL_GAMES_DIR_2=/another/path/to/games</pre>
+                                <p style="margin-top: 12px; color: #e4e4e4;"><strong>How it works:</strong></p>
+                                <ol>
+                                    <li>Set paths in your <code>.env</code> file and restart the container</li>
+                                    <li>Each subfolder in those paths is treated as a game</li>
+                                    <li>Games are matched to IGDB by folder name for metadata</li>
+                                </ol>
+                                <p style="margin-top: 12px; color: #e4e4e4;"><strong>game.json override (optional):</strong></p>
+                                <pre style="background: rgba(0,0,0,0.3); padding: 10px; border-radius: 6px; margin-top: 8px; color: #ccc; font-size: 0.8rem; overflow-x: auto;">{
+  "name": "Actual Game Name",
+  "igdb_id": 12345
+}</pre>
+                                <p style="margin-top: 10px; color: #888; font-size: 0.85rem;">
+                                    Place <code>game.json</code> inside any game folder to override the detected name or specify an IGDB ID.
                                 </p>
                             </div>
                         </div>

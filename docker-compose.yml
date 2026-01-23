@@ -9,6 +9,12 @@ services:
       - ./data/legendary:/root/.config/legendary
       - ./data/nile:/root/.config/nile
       - ${GOG_DB_DIR:-./.empty}:/gog:ro
+      # Local game folders (up to 5 by default, add more if needed)
+      - ${LOCAL_GAMES_DIR_1:-./.empty}:/local-games-1:ro
+      - ${LOCAL_GAMES_DIR_2:-./.empty}:/local-games-2:ro
+      - ${LOCAL_GAMES_DIR_3:-./.empty}:/local-games-3:ro
+      - ${LOCAL_GAMES_DIR_4:-./.empty}:/local-games-4:ro
+      - ${LOCAL_GAMES_DIR_5:-./.empty}:/local-games-5:ro
     environment:
       - DATABASE_PATH=/data/game_library.db
       - DEBUG=false
@@ -27,5 +33,11 @@ services:
       - GOG_DB_PATH=/gog/galaxy-2.0.db
       # Battle.net configuration
       - BATTLENET_SESSION_COOKIE=${BATTLENET_SESSION_COOKIE:-}
+      # Local games - host paths for display, container paths for scanning
+      - LOCAL_GAMES_DIR_1=${LOCAL_GAMES_DIR_1:-}
+      - LOCAL_GAMES_DIR_2=${LOCAL_GAMES_DIR_2:-}
+      - LOCAL_GAMES_DIR_3=${LOCAL_GAMES_DIR_3:-}
+      - LOCAL_GAMES_DIR_4=${LOCAL_GAMES_DIR_4:-}
+      - LOCAL_GAMES_DIR_5=${LOCAL_GAMES_DIR_5:-}
       # Amazon Games - uses Nile (pip install nile && nile auth --login)
     restart: unless-stopped

@@ -20,13 +20,12 @@ Stop jumping between Steam, Epic, GOG, Amazon, and a dozen other launchers just 
   <img src="web/static/images/battlenet-100.png" alt="Battle.net" width="48" height="48" style="margin: 0 10px;">
   <img src="web/static/images/ea-256.png" alt="EA" width="48" height="48" style="margin: 0 10px;">
   <img src="web/static/images/ubisoft-96.png" alt="Ubisoft" width="48" height="48" style="margin: 0 10px;">
+  <img src="web/static/images/local-96.png" alt="Local Folder" width="48" height="48" style="margin: 0 10px;">
 </p>
 
 <p align="center">
-  <strong>Steam</strong> &nbsp;•&nbsp; <strong>Epic Games</strong> &nbsp;•&nbsp; <strong>GOG</strong> &nbsp;•&nbsp; <strong>Amazon Games</strong> &nbsp;•&nbsp; <strong>itch.io</strong> &nbsp;•&nbsp; <strong>Humble Bundle</strong> &nbsp;•&nbsp; <strong>Battle.net</strong> &nbsp;•&nbsp; <strong>EA</strong> &nbsp;•&nbsp; <strong>Ubisoft</strong>
+  <strong>Steam</strong> &nbsp;•&nbsp; <strong>Epic Games</strong> &nbsp;•&nbsp; <strong>GOG</strong> &nbsp;•&nbsp; <strong>Amazon Games</strong> &nbsp;•&nbsp; <strong>itch.io</strong> &nbsp;•&nbsp; <strong>Humble Bundle</strong> &nbsp;•&nbsp; <strong>Battle.net</strong> &nbsp;•&nbsp; <strong>EA</strong> &nbsp;•&nbsp; <strong>Ubisoft</strong> &nbsp;•&nbsp; <strong>Local Folder</strong>
 </p>
-
-Please vote for which stores you would like to see supported next [here](https://github.com/sam1am/backlogia/discussions/1).
 
 ---
 
@@ -127,6 +126,7 @@ Connect your accounts and sync your library with a single click.
 | `./data/legendary:/root/.config/legendary` | Epic Games authentication cache |
 | `./data/nile:/root/.config/nile` | Amazon Games authentication cache |
 | `${GOG_DB_DIR}:/gog:ro` | GOG Galaxy database (read-only) |
+| `${LOCAL_GAMES_DIR_N}:/local-games-N:ro` | Local games folders 1-5 (read-only, add more in docker-compose.yml if needed) |
 
 #### Updating
 
@@ -207,6 +207,70 @@ Configure all store connections through the **Settings** page in Backlogia. Each
 | **Amazon** | OAuth flow in Settings page |
 | **EA** | Bearer token via JavaScript snippet (instructions in Settings) |
 | **Ubisoft** | Bookmarklet import from account.ubisoft.com (instructions in Settings) |
+| **Local Folder** | Configure paths in `.env` file (see [Local Games](#local-games) below) |
+
+### Local Games
+
+Import games from local folders on your machine. Each subfolder is treated as a game and matched to IGDB for metadata.
+
+**Setup:**
+
+1. Add your game folder paths to `.env` (up to 5 by default):
+   ```bash
+   LOCAL_GAMES_DIR_1=/path/to/games
+   LOCAL_GAMES_DIR_2=/mnt/storage/more-games
+   # Add more in docker-compose.yml if you need more than 5
+   ```
+
+2. Restart the container (paths are mounted automatically):
+   ```bash
+   docker compose down && docker compose up -d
+   ```
+
+3. Click "Sync Local" in Settings to import games
+
+**Folder Structure:**
+```
+/path/to/games/
+├── The Witcher 3/          → Imported as "The Witcher 3"
+├── DOOM 2016/              → Imported as "DOOM 2016"
+└── Hollow Knight/          → Imported as "Hollow Knight"
+```
+
+**Override File (game.json):**
+
+For better IGDB matching or custom names, create a `game.json` file inside any game folder:
+
+```json
+{
+  "name": "The Witcher 3: Wild Hunt",
+  "igdb_id": 1942
+}
+```
+
+All fields are optional:
+
+| Field | Description |
+|-------|-------------|
+| `name` | Override the game name (used for display and IGDB matching) |
+| `igdb_id` | Manually specify the IGDB game ID for exact matching |
+| `description` | Custom description |
+| `developers` | Array of developer names, e.g. `["CD Projekt Red"]` |
+| `genres` | Array of genres, e.g. `["RPG", "Action"]` |
+| `release_date` | Release date in ISO format, e.g. `"2015-05-19"` |
+| `cover_image` | URL to a custom cover image |
+
+**Example game.json:**
+```json
+{
+  "name": "DOOM (2016)",
+  "igdb_id": 7351,
+  "developers": ["id Software"],
+  "genres": ["FPS", "Action"]
+}
+```
+
+After syncing local games, run "Sync Missing Metadata" to fetch cover images, ratings, and other data from IGDB.
 
 ---
 

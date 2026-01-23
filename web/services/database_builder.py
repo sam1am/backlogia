@@ -609,6 +609,75 @@ def import_amazon_games(conn):
         return 0
 
 
+def import_local_games(conn):
+    """Import games from local folders."""
+    print("Importing local games...")
+    cursor = conn.cursor()
+
+    try:
+        from ..sources.local import get_local_library
+
+        games = get_local_library()
+        if not games:
+            print("  No local games found or not configured")
+            print("  Set LOCAL_GAMES_PATHS in Settings (comma-separated folder paths)")
+            return 0
+
+        count = 0
+        for game in games:
+            try:
+                # Build developers/genres JSON arrays if provided
+                developers = game.get("developers")
+                genres = game.get("genres")
+
+                # Store folder path and any override data in extra_data
+                extra_data = {
+                    "folder_path": game.get("folder_path"),
+                }
+                if game.get("igdb_id"):
+                    extra_data["manual_igdb_id"] = game.get("igdb_id")
+
+                cursor.execute("""
+                    INSERT INTO games (
+                        name, store, store_id, description, cover_image,
+                        developers, genres, release_date, extra_data, updated_at
+                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    ON CONFLICT(store, store_id) DO UPDATE SET
+                        name = excluded.name,
+                        description = excluded.description,
+                        cover_image = excluded.cover_image,
+                        developers = excluded.developers,
+                        genres = excluded.genres,
+                        release_date = excluded.release_date,
+                        extra_data = excluded.extra_data,
+                        updated_at = excluded.updated_at
+                """, (
+                    game.get("name"),
+                    "local",
+                    game.get("store_id"),
+                    game.get("description"),
+                    game.get("cover_image"),
+                    json.dumps(developers) if developers else None,
+                    json.dumps(genres) if genres else None,
+                    game.get("release_date"),
+                    json.dumps(extra_data),
+                    datetime.now().isoformat()
+                ))
+                count += 1
+            except Exception as e:
+                print(f"  Error importing {game.get('name')}: {e}")
+
+        conn.commit()
+        print(f"  Imported {count} local games")
+        return count
+    except ImportError:
+        print("  Local games module not available")
+        return 0
+    except Exception as e:
+        print(f"  Local games import error: {e}")
+        return 0
+
+
 def add_average_rating_column(conn):
     """Add average_rating column to the database if it doesn't exist."""
     cursor = conn.cursor()

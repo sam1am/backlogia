@@ -1,0 +1,1 @@
+All icons are from Icons8.
