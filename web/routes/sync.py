@@ -106,3 +106,33 @@ def sync_igdb(mode: str):
         raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.post("/api/sync/metacritic/{mode}")
+def sync_metacritic(mode: str):
+    """Sync Metacritic scores. Mode can be 'missing' (unmatched only) or 'all' (resync everything)."""
+    # Import here to avoid circular imports
+    from ..services.metacritic_sync import (
+        MetacriticClient, sync_games as metacritic_sync_games, add_metacritic_columns
+    )
+
+    try:
+        conn = sqlite3.connect(DATABASE_PATH)
+
+        # Ensure Metacritic columns exist
+        add_metacritic_columns(conn)
+
+        # Initialize client
+        client = MetacriticClient()
+
+        # Sync games (force=True for 'all' mode)
+        force = (mode == "all")
+        matched, failed = metacritic_sync_games(conn, client, force=force)
+
+        conn.close()
+
+        message = f"Metacritic sync complete: {matched} matched, {failed} failed/no match"
+        return {"success": True, "message": message, "matched": matched, "failed": failed}
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))

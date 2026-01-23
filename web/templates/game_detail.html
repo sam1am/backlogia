@@ -626,6 +626,12 @@
         .rating-item.critic { background: linear-gradient(135deg, rgba(76, 175, 80, 0.15), rgba(46, 125, 50, 0.15)); }
         .rating-item.critic .score { color: #4caf50; }
 
+        .rating-item.metacritic-critic { background: linear-gradient(135deg, rgba(255, 204, 52, 0.15), rgba(204, 163, 42, 0.15)); }
+        .rating-item.metacritic-critic .score { color: #ffcc34; }
+
+        .rating-item.metacritic-user { background: linear-gradient(135deg, rgba(102, 178, 255, 0.15), rgba(51, 133, 204, 0.15)); }
+        .rating-item.metacritic-user .score { color: #66b2ff; }
+
         .rating-item .score.none { color: #666; }
 
         .rating-item .label {
@@ -1234,6 +1240,40 @@
                 </div>
                 {% endif %}
 
+                {% if game.metacritic_score or game.metacritic_user_score %}
+                <div class="section">
+                    <h2>Metacritic</h2>
+                    <div class="ratings-grid" style="grid-template-columns: repeat(2, 1fr);">
+                        <div class="rating-item metacritic-critic">
+                            {% if game.metacritic_score %}
+                            <div class="score">{{ game.metacritic_score }}</div>
+                            {% else %}
+                            <div class="score none">--</div>
+                            {% endif %}
+                            <div class="label">Metascore</div>
+                        </div>
+                        <div class="rating-item metacritic-user">
+                            {% if game.metacritic_user_score %}
+                            <div class="score">{{ (game.metacritic_user_score * 10)|round|int }}</div>
+                            {% else %}
+                            <div class="score none">--</div>
+                            {% endif %}
+                            <div class="label">User Score</div>
+                            {% if game.metacritic_user_score %}
+                            <div class="count">({{ game.metacritic_user_score }} / 10)</div>
+                            {% endif %}
+                        </div>
+                    </div>
+                    {% if game.metacritic_url %}
+                    <div style="margin-top: 12px; text-align: center;">
+                        <a href="{{ game.metacritic_url }}" target="_blank" rel="noopener" style="color: #ffcc34; font-size: 0.85rem; text-decoration: none;">
+                            View on Metacritic →
+                        </a>
+                    </div>
+                    {% endif %}
+                </div>
+                {% endif %}
+
                 <div class="settings-panel">
                     <button type="button" class="settings-toggle" onclick="toggleSettings()">
                         <span>Settings</span>
@@ -1306,6 +1346,37 @@
                                     <div id="cover-override-status" class="igdb-status" style="display: none;"></div>
                                     <p class="igdb-help">
                                         Override the cover art with a custom image URL. This takes priority over IGDB and store images.
+                                    </p>
+                                </div>
+                            </div>
+
+                            <div class="settings-section">
+                                <h3>Metacritic</h3>
+                                <div class="igdb-settings">
+                                    {% if game.metacritic_score %}
+                                    <div class="igdb-current">
+                                        <span>Score: {{ game.metacritic_score }}</span>
+                                        {% if game.metacritic_user_score %}
+                                        <span style="margin-left: 10px;">User: {{ game.metacritic_user_score }}</span>
+                                        {% endif %}
+                                        {% if game.metacritic_url %}
+                                        <a href="{{ game.metacritic_url }}" target="_blank" rel="noopener">View on Metacritic</a>
+                                        {% endif %}
+                                    </div>
+                                    {% endif %}
+                                    <div class="igdb-input-group">
+                                        <input type="text" id="metacritic-slug-input" class="igdb-input"
+                                               placeholder="Enter Metacritic slug (e.g., game-name)"
+                                               value="{{ game.metacritic_slug or '' }}">
+                                        <button type="button" class="igdb-btn" onclick="syncMetacriticGame()">Sync</button>
+                                    </div>
+                                    {% if game.metacritic_slug %}
+                                    <button type="button" class="igdb-btn clear" onclick="clearMetacritic()">Clear Metacritic Data</button>
+                                    {% endif %}
+                                    <div id="metacritic-status" class="igdb-status" style="display: none;"></div>
+                                    <p class="igdb-help">
+                                        Find the slug by searching on <a href="https://www.metacritic.com/search/{{ game.name|urlencode }}/" target="_blank" rel="noopener">metacritic.com</a>.
+                                        The slug is in the URL (e.g., metacritic.com/game/<strong>slug</strong>/).
                                     </p>
                                 </div>
                             </div>
@@ -1532,6 +1603,90 @@
         document.getElementById('cover-override-input').addEventListener('keypress', function(e) {
             if (e.key === 'Enter') {
                 saveCoverOverride();
+            }
+        });
+
+        // Metacritic Sync Functions
+        function showMetacriticStatus(message, type) {
+            const statusEl = document.getElementById('metacritic-status');
+            statusEl.textContent = message;
+            statusEl.className = 'igdb-status ' + type;
+            statusEl.style.display = 'block';
+        }
+
+        function syncMetacriticGame() {
+            const input = document.getElementById('metacritic-slug-input');
+            const slug = input.value.trim();
+
+            if (!slug) {
+                showMetacriticStatus('Please enter a Metacritic slug', 'error');
+                return;
+            }
+
+            const btn = event.target;
+            btn.disabled = true;
+            btn.textContent = 'Syncing...';
+            showMetacriticStatus('Fetching data from Metacritic...', 'loading');
+
+            fetch(`/api/game/${gameId}/metacritic`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ metacritic_slug: slug })
+            })
+            .then(response => response.json())
+            .then(data => {
+                btn.disabled = false;
+                btn.textContent = 'Sync';
+
+                if (data.success) {
+                    showMetacriticStatus(data.message, 'success');
+                    // Reload page after a short delay to show updated data
+                    setTimeout(() => location.reload(), 1500);
+                } else {
+                    showMetacriticStatus(data.detail || data.error || 'Failed to sync', 'error');
+                }
+            })
+            .catch(error => {
+                btn.disabled = false;
+                btn.textContent = 'Sync';
+                showMetacriticStatus('Network error: ' + error.message, 'error');
+            });
+        }
+
+        function clearMetacritic() {
+            if (!confirm('Are you sure you want to clear all Metacritic data for this game?')) {
+                return;
+            }
+
+            showMetacriticStatus('Clearing Metacritic data...', 'loading');
+
+            fetch(`/api/game/${gameId}/metacritic`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ metacritic_slug: '' })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    showMetacriticStatus(data.message, 'success');
+                    setTimeout(() => location.reload(), 1500);
+                } else {
+                    showMetacriticStatus(data.detail || data.error || 'Failed to clear data', 'error');
+                }
+            })
+            .catch(error => {
+                showMetacriticStatus('Network error: ' + error.message, 'error');
+            });
+        }
+
+        // Allow Enter key to sync Metacritic
+        document.getElementById('metacritic-slug-input')?.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                syncMetacriticGame();
             }
         });
 

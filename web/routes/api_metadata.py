@@ -29,6 +29,10 @@ class UpdateCoverOverrideRequest(BaseModel):
     cover_url_override: Optional[str] = None
 
 
+class UpdateMetacriticRequest(BaseModel):
+    metacritic_slug: Optional[str] = None
+
+
 class BulkGameIdsRequest(BaseModel):
     game_ids: list[int]
 
@@ -194,6 +198,86 @@ def update_cover_override(game_id: int, body: UpdateCoverOverrideRequest, conn: 
     conn.commit()
 
     return {"success": True, "cover_url_override": cover_url}
+
+
+@router.post("/api/game/{game_id}/metacritic")
+def update_metacritic(game_id: int, body: UpdateMetacriticRequest, conn: sqlite3.Connection = Depends(get_db)):
+    """Set custom Metacritic slug and fetch data."""
+    # Import here to avoid circular imports
+    from ..services.metacritic_sync import MetacriticClient, add_metacritic_columns
+
+    # Ensure columns exist
+    add_metacritic_columns(conn)
+
+    metacritic_slug = body.metacritic_slug
+
+    # Allow clearing the Metacritic data
+    if not metacritic_slug:
+        cursor = conn.cursor()
+        cursor.execute(
+            """UPDATE games SET
+                metacritic_score = NULL,
+                metacritic_user_score = NULL,
+                metacritic_url = NULL,
+                metacritic_slug = NULL,
+                metacritic_matched_at = NULL
+            WHERE id = ?""",
+            (game_id,),
+        )
+        conn.commit()
+        return {"success": True, "message": "Metacritic data cleared"}
+
+    # Fetch data from Metacritic
+    try:
+        client = MetacriticClient()
+        mc_game = client.get_game_by_slug(metacritic_slug)
+
+        if not mc_game:
+            raise HTTPException(status_code=404, detail=f"No game found with Metacritic slug '{metacritic_slug}'")
+
+        # Update the database
+        cursor = conn.cursor()
+        cursor.execute(
+            """UPDATE games SET
+                metacritic_score = ?,
+                metacritic_user_score = ?,
+                metacritic_url = ?,
+                metacritic_slug = ?,
+                metacritic_matched_at = CURRENT_TIMESTAMP
+            WHERE id = ?""",
+            (
+                mc_game.get("critic_score"),
+                mc_game.get("user_score"),
+                mc_game.get("url"),
+                mc_game.get("slug"),
+                game_id,
+            ),
+        )
+        conn.commit()
+
+        score_info = []
+        if mc_game.get("critic_score"):
+            score_info.append(f"Critic: {mc_game['critic_score']}")
+        if mc_game.get("user_score"):
+            score_info.append(f"User: {mc_game['user_score']}")
+
+        message = f"Synced with Metacritic"
+        if score_info:
+            message += f" ({', '.join(score_info)})"
+
+        return {
+            "success": True,
+            "message": message,
+            "metacritic_name": mc_game.get("name"),
+            "metacritic_slug": mc_game.get("slug"),
+            "critic_score": mc_game.get("critic_score"),
+            "user_score": mc_game.get("user_score"),
+        }
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to fetch from Metacritic: {str(e)}")
 
 
 @router.post("/api/games/bulk/hide")

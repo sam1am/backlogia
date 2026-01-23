@@ -580,6 +580,7 @@
         .sync-btn .icon.amazon { background: #ff9900; }
         .sync-btn .icon.all { background: linear-gradient(90deg, #667eea, #764ba2); }
         .sync-btn .icon.igdb { background: #9147ff; }
+        .sync-btn .icon.metacritic { background: #ffcc34; color: #000; }
 
         .sync-btn .text {
             display: flex;
@@ -819,6 +820,26 @@
                         <div class="text">
                             <span>Resync All Metadata</span>
                             <small>Re-fetch IGDB data for all games</small>
+                        </div>
+                    </button>
+                </div>
+            </div>
+
+            <div class="sync-section">
+                <div class="sync-section-title">Metacritic Scores</div>
+                <div class="sync-grid">
+                    <button class="sync-btn" onclick="syncMetacritic('missing')">
+                        <div class="icon metacritic">M</div>
+                        <div class="text">
+                            <span>Sync Missing Scores</span>
+                            <small>Fetch scores for unmatched games</small>
+                        </div>
+                    </button>
+                    <button class="sync-btn" onclick="syncMetacritic('all')">
+                        <div class="icon metacritic">M</div>
+                        <div class="text">
+                            <span>Resync All Scores</span>
+                            <small>Re-fetch scores for all games</small>
                         </div>
                     </button>
                 </div>
@@ -1237,6 +1258,36 @@
                     showStatus(data.message, 'success');
                 } else {
                     showStatus(data.error || 'Sync failed', 'error');
+                }
+            })
+            .catch(error => {
+                btn.disabled = false;
+                btn.innerHTML = originalContent;
+                showStatus('Network error: ' + error.message, 'error');
+            });
+        }
+
+        // Sync Metacritic
+        function syncMetacritic(mode) {
+            const btn = event.target.closest('.sync-btn');
+            btn.disabled = true;
+            const originalContent = btn.innerHTML;
+            btn.innerHTML = '<span class="spinner"></span> Syncing...';
+
+            showStatus(`Syncing Metacritic scores (${mode})... This may take several minutes.`, 'loading');
+
+            fetch(`/api/sync/metacritic/${mode}`, {
+                method: 'POST'
+            })
+            .then(response => response.json())
+            .then(data => {
+                btn.disabled = false;
+                btn.innerHTML = originalContent;
+
+                if (data.success) {
+                    showStatus(data.message, 'success');
+                } else {
+                    showStatus(data.detail || data.error || 'Sync failed', 'error');
                 }
             })
             .catch(error => {
