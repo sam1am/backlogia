@@ -1218,9 +1218,13 @@
             <select class="sort-select" onchange="applySort(this.value)">
                 <option value="name-asc" {% if current_sort == 'name' and current_order == 'asc' %}selected{% endif %}>Name (A-Z)</option>
                 <option value="name-desc" {% if current_sort == 'name' and current_order == 'desc' %}selected{% endif %}>Name (Z-A)</option>
+                <option value="average_rating-desc" {% if current_sort == 'average_rating' %}selected{% endif %}>Average Rating (High-Low)</option>
+                <option value="critics_score-desc" {% if current_sort == 'critics_score' %}selected{% endif %}>Steam Rating (High-Low)</option>
+                <option value="metacritic_score-desc" {% if current_sort == 'metacritic_score' %}selected{% endif %}>Metacritic Score (High-Low)</option>
+                <option value="metacritic_user_score-desc" {% if current_sort == 'metacritic_user_score' %}selected{% endif %}>Metacritic User Score (High-Low)</option>
                 <option value="total_rating-desc" {% if current_sort == 'total_rating' %}selected{% endif %}>IGDB Rating (High-Low)</option>
-                <option value="igdb_rating-desc" {% if current_sort == 'igdb_rating' %}selected{% endif %}>User Rating (High-Low)</option>
-                <option value="aggregated_rating-desc" {% if current_sort == 'aggregated_rating' %}selected{% endif %}>Critic Rating (High-Low)</option>
+                <option value="igdb_rating-desc" {% if current_sort == 'igdb_rating' %}selected{% endif %}>IGDB User Rating (High-Low)</option>
+                <option value="aggregated_rating-desc" {% if current_sort == 'aggregated_rating' %}selected{% endif %}>IGDB Critic Rating (High-Low)</option>
                 <option value="playtime_hours-desc" {% if current_sort == 'playtime_hours' %}selected{% endif %}>Most Played</option>
             </select>
 

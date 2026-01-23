@@ -61,10 +61,10 @@ def library(
         params.append(f"%{search}%")
 
     # Sorting
-    valid_sorts = ["name", "store", "playtime_hours", "critics_score", "release_date", "total_rating", "igdb_rating", "aggregated_rating"]
+    valid_sorts = ["name", "store", "playtime_hours", "critics_score", "release_date", "total_rating", "igdb_rating", "aggregated_rating", "average_rating", "metacritic_score", "metacritic_user_score"]
     if sort in valid_sorts:
         order_dir = "DESC" if order == "desc" else "ASC"
-        if sort in ["playtime_hours", "critics_score", "total_rating", "igdb_rating", "aggregated_rating"]:
+        if sort in ["playtime_hours", "critics_score", "total_rating", "igdb_rating", "aggregated_rating", "average_rating", "metacritic_score", "metacritic_user_score"]:
             query += f" ORDER BY {sort} {order_dir} NULLS LAST"
         else:
             query += f" ORDER BY {sort} COLLATE NOCASE {order_dir}"
