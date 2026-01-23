@@ -969,23 +969,50 @@
                     <div class="collapsible-header" onclick="toggleCollapsible(this)">
                         <div class="section-icon gog">G</div>
                         <div class="header-text">
-                            <div class="section-title">GOG Galaxy</div>
-                            <div class="section-description">Import from GOG Galaxy database</div>
+                            <div class="section-title">GOG</div>
+                            <div class="section-description">Import from GOG Galaxy or browser</div>
                         </div>
                         <div class="collapsible-toggle">▼</div>
                     </div>
                     <div class="collapsible-content">
                         <div class="collapsible-content-inner">
-                            <div class="form-group">
-                                <label for="gog_db_path">GOG Galaxy Database Path</label>
-                                <input type="text" id="gog_db_path" name="gog_db_path"
-                                       value="{{ settings.gog_db_path }}"
-                                       placeholder="Path to galaxy-2.0.db">
-                                <div class="help-text">Location of the GOG Galaxy database file</div>
-                                <div class="preset-buttons">
-                                    <button type="button" class="preset-btn" onclick="setPreset('gog_db_path', 'windows')">Windows</button>
-                                    <button type="button" class="preset-btn" onclick="setPreset('gog_db_path', 'mac')">macOS</button>
-                                    <button type="button" class="preset-btn" onclick="setPreset('gog_db_path', 'linux')">Linux</button>
+                            <!-- Option 1: GOG Galaxy Database -->
+                            <div class="method-section" style="margin-bottom: 20px;">
+                                <h4 style="color: #86328a; margin-bottom: 12px; font-size: 0.95rem;">Option 1: GOG Galaxy Database</h4>
+                                <div class="instructions-box" style="margin-bottom: 12px;">
+                                    <p style="color: #888; font-size: 0.85rem;">
+                                        Requires GOG Galaxy to be installed locally. Set the database path in your project's <code style="background: rgba(255,255,255,0.1); padding: 2px 6px; border-radius: 4px;">.env</code> file.
+                                    </p>
+                                </div>
+                                <div class="form-group">
+                                    <label for="gog_db_path">GOG Galaxy Database Path</label>
+                                    <input type="text" id="gog_db_path" name="gog_db_path"
+                                           value="{{ settings.gog_db_path }}"
+                                           placeholder="Path to galaxy-2.0.db">
+                                    <div class="help-text">Location of the GOG Galaxy database file</div>
+                                    <div class="preset-buttons">
+                                        <button type="button" class="preset-btn" onclick="setPreset('gog_db_path', 'windows')">Windows</button>
+                                        <button type="button" class="preset-btn" onclick="setPreset('gog_db_path', 'mac')">macOS</button>
+                                        <button type="button" class="preset-btn" onclick="setPreset('gog_db_path', 'linux')">Linux</button>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Option 2: Bookmarklet -->
+                            <div class="method-section">
+                                <h4 style="color: #86328a; margin-bottom: 12px; font-size: 0.95rem;">Option 2: Browser Bookmarklet</h4>
+                                <div class="instructions-box">
+                                    <p style="margin-bottom: 8px; color: #e4e4e4;">Use the <strong>Backlogia Helper</strong> bookmarklet to import your GOG games:</p>
+                                    <ol>
+                                        <li>Install the bookmarklet from the top of this page (drag to bookmarks bar)</li>
+                                        <li>Log in to <a href="https://www.gog.com" target="_blank">gog.com</a></li>
+                                        <li>Go to <a href="https://www.gog.com/feed" target="_blank">gog.com/feed</a> and click the <strong>Games</strong> tab</li>
+                                        <li>Click the bookmarklet in your bookmarks bar</li>
+                                        <li>Wait while it scrolls to load all games and fetches details</li>
+                                    </ol>
+                                    <p style="margin-top: 10px; color: #888; font-size: 0.85rem;">
+                                        The bookmarklet will guide you if you're not on the correct page.
+                                    </p>
                                 </div>
                             </div>
                         </div>

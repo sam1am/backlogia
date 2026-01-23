@@ -193,6 +193,117 @@
         })();
     }
 
+    // GOG library scraper
+    else if (host.includes('gog.com')) {
+        (async function() {
+            var sleep = function(ms) { return new Promise(function(r) { setTimeout(r, ms); }); };
+
+            // Check if we're on the games library page
+            var isGamesPage = /\/u\/[^/]+\/games/.test(location.pathname);
+            var hasGameRows = document.querySelectorAll('.games-matcher__row').length > 0;
+
+            if (!isGamesPage && !hasGameRows) {
+                var content = createOverlay('#86328a', 'GOG Import');
+                content.innerHTML =
+                    '<p style="margin-bottom:12px;color:#e4e4e4">You need to be on your GOG games library page.</p>' +
+                    '<ol style="margin:0 0 15px 0;padding-left:20px;color:#ccc;font-size:13px">' +
+                    '<li style="margin-bottom:6px">Go to <a href="https://www.gog.com/feed" target="_blank" style="color:#86328a">gog.com/feed</a></li>' +
+                    '<li style="margin-bottom:6px">Click the <strong>Games</strong> tab</li>' +
+                    '<li>Run this bookmarklet again</li>' +
+                    '</ol>' +
+                    '<a href="https://www.gog.com/feed" style="display:block;padding:10px 15px;background:linear-gradient(90deg,#86328a,#6b2870);border:none;border-radius:6px;color:#fff;font-weight:600;text-align:center;text-decoration:none;font-size:14px">Go to GOG Feed</a>';
+                return;
+            }
+
+            var content = createOverlay('#86328a', 'GOG Import');
+            content.textContent = 'Scrolling to load all games...';
+
+            // Phase 1: Scroll until all games are loaded
+            var last = 0;
+            var stuck = 0;
+
+            while (true) {
+                var rows = document.querySelectorAll('.games-matcher__row').length;
+
+                if (rows === last) stuck++;
+                else stuck = 0;
+
+                last = rows;
+
+                if (stuck >= 10) {
+                    break;
+                }
+
+                content.textContent = 'Loading games... (' + rows + ' found)';
+                window.scrollBy(0, 800);
+                await sleep(300);
+            }
+
+            content.textContent = 'Scraping ' + last + ' games...';
+
+            // Phase 2: Scrape game data
+            async function getSlugFromId(id) {
+                try {
+                    var res = await fetch('https://api.gog.com/products/' + id + '?expand=downloads,expanded_dlcs');
+                    var data = await res.json();
+                    return data.slug || null;
+                } catch (e) {
+                    return null;
+                }
+            }
+
+            var seen = new Map();
+            var rows = Array.from(document.querySelectorAll('.games-matcher__row'));
+            var processed = 0;
+
+            for (var i = 0; i < rows.length; i++) {
+                var row = rows[i];
+                var profGameEl = row.querySelector('[prof-game]');
+                var id = profGameEl ? profGameEl.getAttribute('prof-game') : null;
+                var titleEl = row.querySelector('.prof-game__title');
+                var title = titleEl ? titleEl.innerText.trim() : null;
+                var achievementsLink = row.querySelector('.games-matcher__game-achievements-link');
+                var profileHref = achievementsLink ? achievementsLink.getAttribute('href') : null;
+                var profileUrl = profileHref ? new URL(profileHref, location.origin).href : null;
+
+                if (!id || !title) continue;
+
+                var slug = await getSlugFromId(id);
+                var storeUrl = slug ? 'https://www.gog.com/en/game/' + slug : null;
+
+                seen.set(id, { id: id, title: title, profileUrl: profileUrl, storeUrl: storeUrl });
+                processed++;
+                content.textContent = 'Fetching game details... (' + processed + '/' + rows.length + ')';
+            }
+
+            var uniqueGames = Array.from(seen.values());
+
+            content.textContent = 'Found ' + uniqueGames.length + ' games. Sending to Backlogia...';
+
+            try {
+                var response = await fetch(LOCAL_URL + '/api/import/gog', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ games: uniqueGames })
+                });
+                var data = await response.json();
+
+                if (data.success) {
+                    content.innerHTML = '<span style="color:#4caf50">' + data.message + '</span>' +
+                        '<div style="margin-top:10px;color:#888;font-size:12px">Games have been imported to your Backlogia library.</div>';
+                } else {
+                    content.innerHTML = '<span style="color:#f44336">Error: ' + (data.detail || 'Unknown error') + '</span>';
+                }
+            } catch (e) {
+                content.innerHTML = '<span style="color:#f44336">Failed to connect to Backlogia</span>' +
+                    '<div style="margin-top:10px;color:#888;font-size:12px">' +
+                    'Could not reach: ' + LOCAL_URL + '<br><br>' +
+                    'Make sure Backlogia is running on your computer.' +
+                    '</div>';
+            }
+        })();
+    }
+
     // Unknown site - show help with links
     else {
         var content = createOverlay('#667eea', 'Backlogia Helper');
@@ -210,6 +321,10 @@
             '<a href="https://account.ubisoft.com/en-US/games-activity" target="_blank" style="display:flex;align-items:center;gap:12px;padding:12px;background:rgba(0,112,255,0.1);border-radius:8px;text-decoration:none;color:#fff;border:1px solid #0070ff">' +
             '<span style="font-size:20px">🕹️</span>' +
             '<div><strong style="color:#0070ff">Ubisoft Games Activity</strong><br><span style="font-size:12px;color:#888">Import your Ubisoft library</span></div>' +
+            '</a>' +
+            '<a href="https://www.gog.com/feed" target="_blank" style="display:flex;align-items:center;gap:12px;padding:12px;background:rgba(134,50,138,0.1);border-radius:8px;text-decoration:none;color:#fff;border:1px solid #86328a">' +
+            '<span style="font-size:20px">🎁</span>' +
+            '<div><strong style="color:#86328a">GOG Feed</strong><br><span style="font-size:12px;color:#888">Import your GOG library</span></div>' +
             '</a>' +
             '</div>' +
             '<p style="margin-top:15px;font-size:11px;color:#666">Server: ' + LOCAL_URL + '</p>';

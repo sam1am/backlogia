@@ -159,6 +159,17 @@ class UbisoftImportRequest(BaseModel):
     games: List[UbisoftGame]
 
 
+class GOGGame(BaseModel):
+    id: str
+    title: str
+    profileUrl: Optional[str] = None
+    storeUrl: Optional[str] = None
+
+
+class GOGImportRequest(BaseModel):
+    games: List[GOGGame]
+
+
 @router.post("/api/import/ubisoft")
 def import_ubisoft_games(request: UbisoftImportRequest):
     """Import games scraped from Ubisoft account page."""
@@ -219,6 +230,58 @@ def import_ubisoft_games(request: UbisoftImportRequest):
         return {
             "success": True,
             "message": f"Imported {count} Ubisoft games",
+            "count": count
+        }
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.post("/api/import/gog")
+def import_gog_games(request: GOGImportRequest):
+    """Import games scraped from GOG library page."""
+    from ..services.database_builder import create_database
+
+    try:
+        # Ensure database exists
+        create_database()
+        conn = sqlite3.connect(DATABASE_PATH)
+        cursor = conn.cursor()
+
+        count = 0
+        for game in request.games:
+            try:
+                # Store extra data
+                extra_data = {
+                    "profile_url": game.profileUrl,
+                    "store_url": game.storeUrl
+                }
+
+                cursor.execute("""
+                    INSERT INTO games (
+                        name, store, store_id, extra_data, updated_at
+                    ) VALUES (?, ?, ?, ?, ?)
+                    ON CONFLICT(store, store_id) DO UPDATE SET
+                        name = excluded.name,
+                        extra_data = excluded.extra_data,
+                        updated_at = excluded.updated_at
+                """, (
+                    game.title,
+                    "gog",
+                    game.id,
+                    json.dumps(extra_data),
+                    datetime.now().isoformat()
+                ))
+                count += 1
+            except Exception as e:
+                print(f"  Error importing {game.title}: {e}")
+
+        conn.commit()
+        conn.close()
+
+        return {
+            "success": True,
+            "message": f"Imported {count} GOG games",
             "count": count
         }
 
