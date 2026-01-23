@@ -42,6 +42,7 @@ def create_database():
             -- Stats
             playtime_hours REAL,
             critics_score REAL,
+            average_rating REAL,  -- Computed average across all available ratings
 
             -- Additional data
             can_run_offline BOOLEAN,
@@ -606,6 +607,97 @@ def import_amazon_games(conn):
     except Exception as e:
         print(f"  Amazon Games import error: {e}")
         return 0
+
+
+def add_average_rating_column(conn):
+    """Add average_rating column to the database if it doesn't exist."""
+    cursor = conn.cursor()
+    cursor.execute("PRAGMA table_info(games)")
+    existing_columns = {row[1] for row in cursor.fetchall()}
+
+    if "average_rating" not in existing_columns:
+        cursor.execute("ALTER TABLE games ADD COLUMN average_rating REAL")
+        print("Added column: average_rating")
+        conn.commit()
+
+
+def calculate_average_rating(
+    critics_score=None,
+    igdb_rating=None,
+    aggregated_rating=None,
+    total_rating=None,
+    metacritic_score=None,
+    metacritic_user_score=None,
+):
+    """
+    Calculate the average rating across all available ratings.
+    All ratings are normalized to 0-100 scale.
+    Returns None if no ratings are available.
+    """
+    ratings = []
+
+    # Steam critics_score is already 0-100
+    if critics_score is not None:
+        ratings.append(float(critics_score))
+
+    # IGDB ratings are already 0-100
+    if igdb_rating is not None:
+        ratings.append(float(igdb_rating))
+    if aggregated_rating is not None:
+        ratings.append(float(aggregated_rating))
+    if total_rating is not None:
+        ratings.append(float(total_rating))
+
+    # Metacritic critic score is 0-100
+    if metacritic_score is not None:
+        ratings.append(float(metacritic_score))
+
+    # Metacritic user score is 0-10, normalize to 0-100
+    if metacritic_user_score is not None:
+        ratings.append(float(metacritic_user_score) * 10)
+
+    if not ratings:
+        return None
+
+    return round(sum(ratings) / len(ratings), 1)
+
+
+def update_average_rating(conn, game_id):
+    """
+    Fetch all ratings for a game and update its average_rating.
+    Call this after updating any rating field for a game.
+    """
+    cursor = conn.cursor()
+
+    # First ensure the column exists
+    add_average_rating_column(conn)
+
+    # Fetch all rating fields for this game
+    cursor.execute(
+        """SELECT critics_score, igdb_rating, aggregated_rating, total_rating,
+                  metacritic_score, metacritic_user_score
+           FROM games WHERE id = ?""",
+        (game_id,),
+    )
+    row = cursor.fetchone()
+    if not row:
+        return None
+
+    avg = calculate_average_rating(
+        critics_score=row[0],
+        igdb_rating=row[1],
+        aggregated_rating=row[2],
+        total_rating=row[3],
+        metacritic_score=row[4],
+        metacritic_user_score=row[5],
+    )
+
+    cursor.execute(
+        "UPDATE games SET average_rating = ? WHERE id = ?",
+        (avg, game_id),
+    )
+    conn.commit()
+    return avg
 
 
 def get_stats(conn):

@@ -647,6 +647,46 @@
             margin-top: 2px;
         }
 
+        /* Average Rating Display */
+        .average-rating {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+            padding: 16px;
+            background: linear-gradient(135deg, rgba(102, 126, 234, 0.2), rgba(118, 75, 162, 0.2));
+            border-radius: 10px;
+            margin-bottom: 16px;
+            border: 1px solid rgba(102, 126, 234, 0.3);
+        }
+
+        .average-rating .avg-score {
+            font-size: 2.2rem;
+            font-weight: 700;
+            background: linear-gradient(90deg, #667eea, #764ba2);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .average-rating .avg-label {
+            font-size: 0.8rem;
+            color: #aaa;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .average-rating .avg-info {
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+        }
+
+        .average-rating .avg-sources {
+            font-size: 0.7rem;
+            color: #666;
+        }
+
         /* Combined Ratings Section */
         .ratings-combined {
             display: flex;
@@ -1271,6 +1311,19 @@
                 {% if has_steam or has_igdb or has_metacritic %}
                 <div class="section">
                     <h2>Ratings</h2>
+                    {% if game.average_rating %}
+                    {% set rating_sources = [] %}
+                    {% if has_steam %}{% set _ = rating_sources.append('Steam') %}{% endif %}
+                    {% if has_igdb %}{% set _ = rating_sources.append('IGDB') %}{% endif %}
+                    {% if has_metacritic %}{% set _ = rating_sources.append('Metacritic') %}{% endif %}
+                    <div class="average-rating">
+                        <div class="avg-score">{{ game.average_rating|round|int }}</div>
+                        <div class="avg-info">
+                            <div class="avg-label">Average Rating</div>
+                            <div class="avg-sources">Based on {{ rating_sources|join(', ') }}</div>
+                        </div>
+                    </div>
+                    {% endif %}
                     <div class="ratings-combined">
                         {% if has_steam %}
                         <div class="rating-source">

@@ -49,6 +49,7 @@ def update_igdb(game_id: int, body: UpdateIgdbRequest, conn: sqlite3.Connection 
     from ..services.igdb_sync import (
         IGDBClient, extract_genres_and_themes, merge_and_dedupe_genres
     )
+    from ..services.database_builder import update_average_rating
 
     igdb_id = body.igdb_id
 
@@ -73,6 +74,7 @@ def update_igdb(game_id: int, body: UpdateIgdbRequest, conn: sqlite3.Connection 
             (game_id,),
         )
         conn.commit()
+        update_average_rating(conn, game_id)
         return {"success": True, "message": "IGDB data cleared"}
 
     # Fetch data from IGDB
@@ -151,6 +153,7 @@ def update_igdb(game_id: int, body: UpdateIgdbRequest, conn: sqlite3.Connection 
             ),
         )
         conn.commit()
+        update_average_rating(conn, game_id)
 
         return {
             "success": True,
@@ -210,6 +213,7 @@ def update_metacritic(game_id: int, body: UpdateMetacriticRequest, conn: sqlite3
     """Set custom Metacritic slug and fetch data."""
     # Import here to avoid circular imports
     from ..services.metacritic_sync import MetacriticClient, add_metacritic_columns
+    from ..services.database_builder import update_average_rating
 
     # Ensure columns exist
     add_metacritic_columns(conn)
@@ -230,6 +234,7 @@ def update_metacritic(game_id: int, body: UpdateMetacriticRequest, conn: sqlite3
             (game_id,),
         )
         conn.commit()
+        update_average_rating(conn, game_id)
         return {"success": True, "message": "Metacritic data cleared"}
 
     # Fetch data from Metacritic
@@ -259,6 +264,7 @@ def update_metacritic(game_id: int, body: UpdateMetacriticRequest, conn: sqlite3
             ),
         )
         conn.commit()
+        update_average_rating(conn, game_id)
 
         score_info = []
         if mc_game.get("critic_score"):
@@ -283,6 +289,54 @@ def update_metacritic(game_id: int, body: UpdateMetacriticRequest, conn: sqlite3
         raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to fetch from Metacritic: {str(e)}")
+
+
+@router.post("/api/games/recalculate-average-ratings")
+def recalculate_average_ratings(conn: sqlite3.Connection = Depends(get_db)):
+    """Recalculate average ratings for all games with at least one rating."""
+    from ..services.database_builder import (
+        add_average_rating_column, calculate_average_rating
+    )
+
+    # Ensure the column exists
+    add_average_rating_column(conn)
+
+    cursor = conn.cursor()
+
+    # Fetch all games with at least one rating
+    cursor.execute(
+        """SELECT id, critics_score, igdb_rating, aggregated_rating, total_rating,
+                  metacritic_score, metacritic_user_score
+           FROM games
+           WHERE critics_score IS NOT NULL
+              OR igdb_rating IS NOT NULL
+              OR aggregated_rating IS NOT NULL
+              OR total_rating IS NOT NULL
+              OR metacritic_score IS NOT NULL
+              OR metacritic_user_score IS NOT NULL"""
+    )
+    rows = cursor.fetchall()
+
+    updated = 0
+    for row in rows:
+        game_id = row[0]
+        avg = calculate_average_rating(
+            critics_score=row[1],
+            igdb_rating=row[2],
+            aggregated_rating=row[3],
+            total_rating=row[4],
+            metacritic_score=row[5],
+            metacritic_user_score=row[6],
+        )
+        if avg is not None:
+            cursor.execute(
+                "UPDATE games SET average_rating = ? WHERE id = ?",
+                (avg, game_id),
+            )
+            updated += 1
+
+    conn.commit()
+    return {"success": True, "updated": updated, "message": f"Recalculated average ratings for {updated} games"}
 
 
 @router.post("/api/games/bulk/hide")
