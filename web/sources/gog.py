@@ -83,9 +83,25 @@ def get_gog_library():
             return []
         cursor = conn.cursor()
 
+        # Get the GamePieceType IDs dynamically
+        try:
+            cursor.execute("SELECT id, type FROM GamePieceTypes WHERE type IN ('title', 'meta', 'originalImages', 'summary')")
+            type_mapping = {row[1]: row[0] for row in cursor.fetchall()}
+
+            title_id = type_mapping.get('title')
+            meta_id = type_mapping.get('meta')
+            images_id = type_mapping.get('originalImages')
+            summary_id = type_mapping.get('summary')
+
+            if not all([title_id, meta_id, images_id, summary_id]):
+                raise ValueError(f"Some GamePieceTypes not found. Available types: {list(type_mapping.keys())}")
+        except (sqlite3.OperationalError, ValueError) as e:
+            print(f"[GOG DEBUG] Error fetching GamePieceTypes: {e}")
+            conn.close()
+            return []
+
         # Query for owned GOG games with all their metadata
-        # GamePieceTypes: 112=title, 104=meta, 24=originalImages, 111=summary
-        query = """
+        query = f"""
         SELECT
             lr.releaseKey,
             title.value as title_json,
@@ -95,13 +111,13 @@ def get_gog_library():
         FROM
             LibraryReleases lr
         LEFT JOIN
-            GamePieces title ON lr.releaseKey = title.releaseKey AND title.gamePieceTypeId = 112
+            GamePieces title ON lr.releaseKey = title.releaseKey AND title.gamePieceTypeId = {title_id}
         LEFT JOIN
-            GamePieces meta ON lr.releaseKey = meta.releaseKey AND meta.gamePieceTypeId = 104
+            GamePieces meta ON lr.releaseKey = meta.releaseKey AND meta.gamePieceTypeId = {meta_id}
         LEFT JOIN
-            GamePieces images ON lr.releaseKey = images.releaseKey AND images.gamePieceTypeId = 24
+            GamePieces images ON lr.releaseKey = images.releaseKey AND images.gamePieceTypeId = {images_id}
         LEFT JOIN
-            GamePieces summary ON lr.releaseKey = summary.releaseKey AND summary.gamePieceTypeId = 111
+            GamePieces summary ON lr.releaseKey = summary.releaseKey AND summary.gamePieceTypeId = {summary_id}
         WHERE
             lr.releaseKey LIKE 'gog_%'
         GROUP BY lr.releaseKey
