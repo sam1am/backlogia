@@ -377,6 +377,16 @@ def sync_games(conn, client, limit=None, force=False, max_workers=5):
             ),
         )
 
+    def mark_not_found(name):
+        """Mark all games with this name as searched but not found (metacritic_score = -1)."""
+        cursor.execute(
+            """UPDATE games SET
+                metacritic_score = -1,
+                metacritic_matched_at = CURRENT_TIMESTAMP
+            WHERE LOWER(name) = LOWER(?)""",
+            (name,),
+        )
+
     # Process games in parallel
     with ThreadPoolExecutor(max_workers=max_workers) as executor:
         # Submit all tasks
@@ -409,12 +419,18 @@ def sync_games(conn, client, limit=None, force=False, max_workers=5):
 
                     print(f"[{completed}/{total}] {name} → Matched: {result['match_name']} (match: {result['match_score']:.0f}){score_str}")
                 else:
+                    # Mark as searched but not found
                     with results_lock:
+                        mark_not_found(name)
+                        conn.commit()
                         failed += 1
                     print(f"[{completed}/{total}] {name} → {result}")
 
             except Exception as e:
+                # Mark as searched but not found on exception
                 with results_lock:
+                    mark_not_found(name)
+                    conn.commit()
                     failed += 1
                 print(f"[{completed}/{total}] {name} → Exception: {e}")
 
@@ -428,11 +444,12 @@ def get_stats(conn):
     cursor.execute("SELECT COUNT(*) FROM games")
     total = cursor.fetchone()[0]
 
-    cursor.execute("SELECT COUNT(*) FROM games WHERE metacritic_score IS NOT NULL")
+    # Count matched games (metacritic_score >= 0, not counting -1 which means "not found")
+    cursor.execute("SELECT COUNT(*) FROM games WHERE metacritic_score IS NOT NULL AND metacritic_score >= 0")
     matched = cursor.fetchone()[0]
 
     cursor.execute(
-        "SELECT AVG(metacritic_score) FROM games WHERE metacritic_score IS NOT NULL"
+        "SELECT AVG(metacritic_score) FROM games WHERE metacritic_score IS NOT NULL AND metacritic_score >= 0"
     )
     avg_critic_score = cursor.fetchone()[0]
 
@@ -443,7 +460,7 @@ def get_stats(conn):
 
     cursor.execute(
         """SELECT name, metacritic_score FROM games
-           WHERE metacritic_score IS NOT NULL
+           WHERE metacritic_score IS NOT NULL AND metacritic_score >= 0
            ORDER BY metacritic_score DESC LIMIT 5"""
     )
     top_rated = cursor.fetchall()

@@ -374,6 +374,12 @@ def sync_games(conn, client, limit=None, force=False):
 
             if not results:
                 print("No results")
+                # Mark as searched but not found (igdb_id = 0)
+                cursor.execute(
+                    "UPDATE games SET igdb_id = 0, igdb_matched_at = CURRENT_TIMESTAMP WHERE id = ?",
+                    (game_id,)
+                )
+                conn.commit()
                 failed += 1
                 continue
 
@@ -460,6 +466,12 @@ def sync_games(conn, client, limit=None, force=False):
                 matched += 1
             else:
                 print(f"No good match (best score: {best_score:.0f})")
+                # Mark as searched but not found (igdb_id = 0)
+                cursor.execute(
+                    "UPDATE games SET igdb_id = 0, igdb_matched_at = CURRENT_TIMESTAMP WHERE id = ?",
+                    (game_id,)
+                )
+                conn.commit()
                 failed += 1
 
             # Rate limiting - IGDB allows 4 requests/second
@@ -479,7 +491,8 @@ def get_stats(conn):
     cursor.execute("SELECT COUNT(*) FROM games")
     total = cursor.fetchone()[0]
 
-    cursor.execute("SELECT COUNT(*) FROM games WHERE igdb_id IS NOT NULL")
+    # Count matched games (igdb_id > 0, not counting 0 which means "not found")
+    cursor.execute("SELECT COUNT(*) FROM games WHERE igdb_id IS NOT NULL AND igdb_id > 0")
     matched = cursor.fetchone()[0]
 
     cursor.execute(

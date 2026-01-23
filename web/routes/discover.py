@@ -35,7 +35,7 @@ def discover(request: Request, conn: sqlite3.Connection = Depends(get_db)):
                   igdb_summary, description, igdb_screenshots, total_rating,
                   igdb_rating, aggregated_rating, genres, playtime_hours
            FROM games
-           WHERE igdb_id IS NOT NULL""" + EXCLUDE_HIDDEN_FILTER + """
+           WHERE igdb_id IS NOT NULL AND igdb_id > 0""" + EXCLUDE_HIDDEN_FILTER + """
            ORDER BY total_rating DESC NULLS LAST"""
     )
     library_games = cursor.fetchall()
@@ -119,7 +119,7 @@ def discover(request: Request, conn: sqlite3.Connection = Depends(get_db)):
                   igdb_summary, description, igdb_screenshots, total_rating,
                   igdb_rating, aggregated_rating, genres, playtime_hours
            FROM games
-           WHERE igdb_id IS NOT NULL AND total_rating >= 90""" + EXCLUDE_HIDDEN_FILTER + """
+           WHERE igdb_id IS NOT NULL AND igdb_id > 0 AND total_rating >= 90""" + EXCLUDE_HIDDEN_FILTER + """
            ORDER BY total_rating DESC
            LIMIT 10"""
     )
@@ -131,7 +131,7 @@ def discover(request: Request, conn: sqlite3.Connection = Depends(get_db)):
                   igdb_summary, description, igdb_screenshots, total_rating,
                   igdb_rating, aggregated_rating, genres, playtime_hours
            FROM games
-           WHERE igdb_id IS NOT NULL
+           WHERE igdb_id IS NOT NULL AND igdb_id > 0
              AND total_rating >= 75
              AND total_rating < 90
              AND aggregated_rating IS NULL""" + EXCLUDE_HIDDEN_FILTER + """
@@ -146,7 +146,7 @@ def discover(request: Request, conn: sqlite3.Connection = Depends(get_db)):
                   igdb_summary, description, igdb_screenshots, total_rating,
                   igdb_rating, aggregated_rating, genres, playtime_hours
            FROM games
-           WHERE igdb_id IS NOT NULL AND playtime_hours > 0""" + EXCLUDE_HIDDEN_FILTER + """
+           WHERE igdb_id IS NOT NULL AND igdb_id > 0 AND playtime_hours > 0""" + EXCLUDE_HIDDEN_FILTER + """
            ORDER BY playtime_hours DESC
            LIMIT 10"""
     )
@@ -158,7 +158,7 @@ def discover(request: Request, conn: sqlite3.Connection = Depends(get_db)):
                   igdb_summary, description, igdb_screenshots, total_rating,
                   igdb_rating, aggregated_rating, genres, playtime_hours
            FROM games
-           WHERE igdb_id IS NOT NULL AND aggregated_rating >= 80""" + EXCLUDE_HIDDEN_FILTER + """
+           WHERE igdb_id IS NOT NULL AND igdb_id > 0 AND aggregated_rating >= 80""" + EXCLUDE_HIDDEN_FILTER + """
            ORDER BY aggregated_rating DESC
            LIMIT 10"""
     )
@@ -170,7 +170,7 @@ def discover(request: Request, conn: sqlite3.Connection = Depends(get_db)):
                   igdb_summary, description, igdb_screenshots, total_rating,
                   igdb_rating, aggregated_rating, genres, playtime_hours
            FROM games
-           WHERE igdb_id IS NOT NULL""" + EXCLUDE_HIDDEN_FILTER + """
+           WHERE igdb_id IS NOT NULL AND igdb_id > 0""" + EXCLUDE_HIDDEN_FILTER + """
            ORDER BY RANDOM()
            LIMIT 10"""
     )
