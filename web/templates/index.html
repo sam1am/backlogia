@@ -512,6 +512,10 @@
             box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
         }
 
+        .game-cover-wrapper {
+            position: relative;
+        }
+
         .game-cover {
             width: 100%;
             aspect-ratio: 2/3;
@@ -602,6 +606,22 @@
 
         .ratings-bar .rating.critic {
             background: linear-gradient(135deg, #4caf50, #2e7d32);
+        }
+
+        .streaming-pill {
+            position: absolute;
+            bottom: 8px;
+            left: 8px;
+            background: linear-gradient(90deg, #107C10, #0e6b0e);
+            color: white;
+            font-size: 0.6rem;
+            padding: 3px 6px;
+            border-radius: 4px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            z-index: 5;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
         }
 
         .game-stats {
@@ -1133,7 +1153,7 @@
 
     <div class="container">
         <header>
-            {% set store_icons_header = {'steam': 'steam-100.png', 'epic': 'epic-100.png', 'gog': 'gog-48.png', 'itch': 'itch-90.png', 'humble': 'humble-96.png', 'battlenet': 'battlenet-100.png', 'amazon': 'amazon-120.png', 'ea': 'ea-256.png', 'ubisoft': 'ubisoft-96.png', 'local': 'local-96.png'} %}
+            {% set store_icons_header = {'steam': 'steam-100.png', 'epic': 'epic-100.png', 'gog': 'gog-48.png', 'itch': 'itch-90.png', 'humble': 'humble-96.png', 'battlenet': 'battlenet-100.png', 'amazon': 'amazon-120.png', 'ea': 'ea-256.png', 'xbox': 'xbox-100.png', 'ubisoft': 'ubisoft-96.png', 'local': 'local-96.png'} %}
             <div class="stats-container">
                 <div class="stats-summary">
                     <div class="summary-stat">
@@ -1158,7 +1178,7 @@
         </header>
 
         <div class="filters">
-            {% set store_icons = {'steam': 'steam-100.png', 'epic': 'epic-100.png', 'gog': 'gog-48.png', 'itch': 'itch-90.png', 'humble': 'humble-96.png', 'battlenet': 'battlenet-100.png', 'amazon': 'amazon-120.png', 'ea': 'ea-256.png', 'ubisoft': 'ubisoft-96.png', 'local': 'local-96.png'} %}
+            {% set store_icons = {'steam': 'steam-100.png', 'epic': 'epic-100.png', 'gog': 'gog-48.png', 'itch': 'itch-90.png', 'humble': 'humble-96.png', 'battlenet': 'battlenet-100.png', 'amazon': 'amazon-120.png', 'ea': 'ea-256.png', 'xbox': 'xbox-100.png', 'ubisoft': 'ubisoft-96.png', 'local': 'local-96.png'} %}
             <div class="store-dropdown" id="store-dropdown">
                 <button type="button" class="store-dropdown-btn {% if current_stores %}active{% endif %}" onclick="toggleStoreDropdown()">
                     <span class="btn-text">
@@ -1264,20 +1284,25 @@
         </div>
 
         {% if games %}
-        {% set store_icons = {'steam': 'steam-100.png', 'epic': 'epic-100.png', 'gog': 'gog-48.png', 'itch': 'itch-90.png', 'humble': 'humble-96.png', 'battlenet': 'battlenet-100.png', 'amazon': 'amazon-120.png', 'ea': 'ea-256.png', 'ubisoft': 'ubisoft-96.png', 'local': 'local-96.png'} %}
+        {% set store_icons = {'steam': 'steam-100.png', 'epic': 'epic-100.png', 'gog': 'gog-48.png', 'itch': 'itch-90.png', 'humble': 'humble-96.png', 'battlenet': 'battlenet-100.png', 'amazon': 'amazon-120.png', 'ea': 'ea-256.png', 'xbox': 'xbox-100.png', 'ubisoft': 'ubisoft-96.png', 'local': 'local-96.png'} %}
         <div id="games-grid" class="games-grid size-medium">
             {% for grouped_game in games %}
             {% set game = grouped_game.primary %}
             <a href="/game/{{ grouped_game.game_ids[0] }}" class="game-card" data-game-ids="{{ grouped_game.game_ids|join(',') }}">
                 <div class="game-checkbox" onclick="toggleGameSelection(event, this)"></div>
                 {% set cover_url = game.cover_url_override or game.igdb_cover_url or game.cover_image %}
-                {% if cover_url %}
-                <img src="{{ cover_url }}" alt="{{ game.name }}" class="game-cover" loading="lazy"
-                     onerror="this.style.display='none';this.nextElementSibling.style.display='flex';">
-                <div class="game-cover-placeholder" style="display:none;">🎮</div>
-                {% else %}
-                <div class="game-cover-placeholder">🎮</div>
-                {% endif %}
+                <div class="game-cover-wrapper">
+                    {% if cover_url %}
+                    <img src="{{ cover_url }}" alt="{{ game.name }}" class="game-cover" loading="lazy"
+                         onerror="this.style.display='none';this.nextElementSibling.style.display='flex';">
+                    <div class="game-cover-placeholder" style="display:none;">🎮</div>
+                    {% else %}
+                    <div class="game-cover-placeholder">🎮</div>
+                    {% endif %}
+                    {% if grouped_game.is_streaming %}
+                    <span class="streaming-pill">Streaming</span>
+                    {% endif %}
+                </div>
                 <div class="game-info">
                     <div class="game-title">{{ game.name or 'Unknown Game' }}</div>
                     <div class="game-meta">

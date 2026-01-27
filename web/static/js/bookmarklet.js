@@ -193,6 +193,74 @@
         })();
     }
 
+    // Xbox token extraction (Note: xbox.com blocks external scripts, so this is handled inline in settings.html)
+    // This code is here for reference and for xboxlive.com subdomains that might allow it
+    else if (host.includes('xbox.com') || host.includes('xboxlive.com')) {
+        (function() {
+            var content = createOverlay('#107C10', 'Xbox Token');
+            content.textContent = 'Looking for Xbox auth token...';
+
+            try {
+                var token = null;
+                var tokenSource = null;
+
+                // Method 1: Check cookies for XBXXtk tokens
+                var cookies = document.cookie.split(';');
+                for (var i = 0; i < cookies.length; i++) {
+                    var cookie = cookies[i].trim();
+                    if (cookie.indexOf('XBXXtk') === 0) {
+                        try {
+                            var value = decodeURIComponent(cookie.split('=').slice(1).join('='));
+                            var parsed = JSON.parse(value);
+                            if (parsed.tokenData && parsed.tokenData.token) {
+                                token = parsed.tokenData.token;
+                                tokenSource = 'cookie';
+                                break;
+                            }
+                        } catch (e) {}
+                    }
+                }
+
+                // Method 2: Check for full XBL3.0 token in scripts
+                if (!token) {
+                    var scripts = document.querySelectorAll('script:not([src])');
+                    for (var i = 0; i < scripts.length; i++) {
+                        var match = scripts[i].textContent.match(/["'](XBL3\.0\s+x=[^"']+)["']/);
+                        if (match) {
+                            token = match[1];
+                            tokenSource = 'script';
+                            break;
+                        }
+                    }
+                }
+
+                if (token) {
+                    token = token.trim();
+                    content.innerHTML =
+                        '<div style="background:#0d0d1a;padding:12px 15px;border-radius:6px;margin-bottom:15px;word-break:break-all;max-height:150px;overflow-y:auto">' +
+                        '<code style="color:#e4e4e4;font-size:11px;font-family:monospace">' + token.substring(0, 60) + '...</code>' +
+                        '</div>' +
+                        '<button id="__bl_copy__" style="width:100%;padding:10px 15px;background:linear-gradient(90deg,#107C10,#0e6b0e);border:none;border-radius:6px;color:#fff;font-weight:600;cursor:pointer;font-size:14px">Copy Token</button>' +
+                        '<div style="margin-top:12px;color:#888;font-size:11px">Found via ' + tokenSource + '. Paste in Backlogia settings.</div>';
+
+                    content.querySelector('#__bl_copy__').onclick = function() {
+                        navigator.clipboard.writeText(token).then(function() {
+                            this.textContent = 'Copied!';
+                            this.style.background = 'linear-gradient(90deg,#4caf50,#2e7d32)';
+                        }.bind(this));
+                    };
+                } else {
+                    content.innerHTML =
+                        '<p style="color:#f0ad4e;margin-bottom:12px">Could not find token automatically.</p>' +
+                        '<p style="color:#ccc;font-size:12px">Open DevTools (F12) → Network tab, reload the page, and look for requests with Authorization header starting with XBL3.0</p>' +
+                        '<p style="margin-top:10px;color:#888;font-size:11px">Game Pass catalog syncs without a token.</p>';
+                }
+            } catch (e) {
+                content.innerHTML = '<span style="color:#f44336">Error: ' + e.message + '</span>';
+            }
+        })();
+    }
+
     // GOG library scraper
     else if (host.includes('gog.com')) {
         (async function() {
@@ -317,6 +385,10 @@
             '<a href="https://www.ea.com" target="_blank" style="display:flex;align-items:center;gap:12px;padding:12px;background:rgba(255,71,71,0.1);border-radius:8px;text-decoration:none;color:#fff;border:1px solid #ff4747">' +
             '<span style="font-size:20px">🎯</span>' +
             '<div><strong style="color:#ff4747">EA.com</strong><br><span style="font-size:12px;color:#888">Extract your EA bearer token</span></div>' +
+            '</a>' +
+            '<a href="https://www.xbox.com/en-US/play" target="_blank" style="display:flex;align-items:center;gap:12px;padding:12px;background:rgba(16,124,16,0.1);border-radius:8px;text-decoration:none;color:#fff;border:1px solid #107C10">' +
+            '<span style="font-size:20px">🎮</span>' +
+            '<div><strong style="color:#107C10">Xbox.com</strong><br><span style="font-size:12px;color:#888">Extract your Xbox auth token</span></div>' +
             '</a>' +
             '<a href="https://account.ubisoft.com/en-US/games-activity" target="_blank" style="display:flex;align-items:center;gap:12px;padding:12px;background:rgba(0,112,255,0.1);border-radius:8px;text-decoration:none;color:#fff;border:1px solid #0070ff">' +
             '<span style="font-size:20px">🕹️</span>' +

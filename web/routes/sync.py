@@ -25,6 +25,7 @@ class StoreType(str, Enum):
     battlenet = "battlenet"
     amazon = "amazon"
     ea = "ea"
+    xbox = "xbox"
     ubisoft = "ubisoft"
     local = "local"
     all = "all"
@@ -38,7 +39,7 @@ def sync_store(store: StoreType):
         create_database, import_steam_games, import_epic_games,
         import_gog_games, import_itch_games, import_humble_games,
         import_battlenet_games, import_amazon_games, import_ea_games,
-        import_local_games
+        import_xbox_games, import_local_games
     )
 
     try:
@@ -72,6 +73,9 @@ def sync_store(store: StoreType):
 
         if store == StoreType.ea or store == StoreType.all:
             results["ea"] = import_ea_games(conn)
+
+        if store == StoreType.xbox or store == StoreType.all:
+            results["xbox"] = import_xbox_games(conn)
 
         if store == StoreType.local or store == StoreType.all:
             results["local"] = import_local_games(conn)

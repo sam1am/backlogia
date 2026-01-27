@@ -2,7 +2,7 @@
 
 **Your entire game library, finally in one place.**
 
-Stop jumping between Steam, Epic, GOG, Amazon, and a dozen other launchers just to see what you own. Backlogia aggregates all your games into a single, beautifully organized library with rich metadata, ratings, and discovery features—all running locally on your machine.
+Stop jumping between Steam, Epic, GOG, Xbox, Amazon, and a dozen other launchers just to see what you own. Backlogia aggregates all your games into a single, beautifully organized library with rich metadata, ratings, and discovery features—all running locally on your machine.
 
 ![Library View](docs/images/library.png)
 
@@ -19,12 +19,13 @@ Stop jumping between Steam, Epic, GOG, Amazon, and a dozen other launchers just 
   <img src="web/static/images/humble-96.png" alt="Humble Bundle" width="48" height="48" style="margin: 0 10px;">
   <img src="web/static/images/battlenet-100.png" alt="Battle.net" width="48" height="48" style="margin: 0 10px;">
   <img src="web/static/images/ea-256.png" alt="EA" width="48" height="48" style="margin: 0 10px;">
+  <img src="web/static/images/xbox-100.png" alt="Xbox" width="48" height="48" style="margin: 0 10px;">
   <img src="web/static/images/ubisoft-96.png" alt="Ubisoft" width="48" height="48" style="margin: 0 10px;">
   <img src="web/static/images/local-96.png" alt="Local Folder" width="48" height="48" style="margin: 0 10px;">
 </p>
 
 <p align="center">
-  <strong>Steam</strong> &nbsp;•&nbsp; <strong>Epic Games</strong> &nbsp;•&nbsp; <strong>GOG</strong> &nbsp;•&nbsp; <strong>Amazon Games</strong> &nbsp;•&nbsp; <strong>itch.io</strong> &nbsp;•&nbsp; <strong>Humble Bundle</strong> &nbsp;•&nbsp; <strong>Battle.net</strong> &nbsp;•&nbsp; <strong>EA</strong> &nbsp;•&nbsp; <strong>Ubisoft</strong> &nbsp;•&nbsp; <strong>Local Folder</strong>
+  <strong>Steam</strong> &nbsp;•&nbsp; <strong>Epic Games</strong> &nbsp;•&nbsp; <strong>GOG</strong> &nbsp;•&nbsp; <strong>Amazon Games</strong> &nbsp;•&nbsp; <strong>itch.io</strong> &nbsp;•&nbsp; <strong>Humble Bundle</strong> &nbsp;•&nbsp; <strong>Battle.net</strong> &nbsp;•&nbsp; <strong>EA</strong> &nbsp;•&nbsp; <strong>Xbox / Game Pass</strong> &nbsp;•&nbsp; <strong>Ubisoft</strong> &nbsp;•&nbsp; <strong>Local Folder</strong>
 </p>
 
 ---
@@ -205,7 +206,8 @@ Configure all store connections through the **Settings** page in Backlogia. Each
 | **Humble Bundle** | Session cookie from browser (instructions in Settings) |
 | **Battle.net** | Session cookie from browser (instructions in Settings) |
 | **Amazon** | OAuth flow in Settings page |
-| **EA** | Bearer token via JavaScript snippet (instructions in Settings) |
+| **EA** | Bearer token via bookmarklet (instructions in Settings) |
+| **Xbox / Game Pass** | XSTS token via bookmarklet or browser DevTools (instructions in Settings). Game Pass catalog syncs without authentication. |
 | **Ubisoft** | Bookmarklet import from account.ubisoft.com (instructions in Settings) |
 | **Local Folder** | Configure paths in `.env` file (see [Local Games](#local-games) below) |
 

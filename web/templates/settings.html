@@ -136,6 +136,7 @@
         .section-icon.battlenet { background: #00aeff; }
         .section-icon.amazon { background: #ff9900; }
         .section-icon.ea { background: #ff4747; }
+        .section-icon.xbox { background: #107C10; }
         .section-icon.ubisoft { background: #0070ff; }
         .section-icon.sync { background: #4caf50; }
 
@@ -581,6 +582,7 @@
         .sync-btn .icon.battlenet { background: #00aeff; }
         .sync-btn .icon.amazon { background: #ff9900; }
         .sync-btn .icon.ea { background: #ff4747; }
+        .sync-btn .icon.xbox { background: #107C10; }
         .sync-btn .icon.ubisoft { background: #0070ff; }
         .sync-btn .icon.local { background: #6b8e23; }
         .sync-btn .icon.all { background: linear-gradient(90deg, #667eea, #764ba2); }
@@ -823,6 +825,13 @@
                         <div class="text">
                             <span>Sync EA</span>
                             <small>Import from EA App</small>
+                        </div>
+                    </button>
+                    <button class="sync-btn" onclick="syncStore('xbox')">
+                        <div class="icon xbox">X</div>
+                        <div class="text">
+                            <span>Sync Xbox</span>
+                            <small>Import from Xbox/Game Pass</small>
                         </div>
                     </button>
                     <button class="sync-btn" onclick="syncStore('local')">
@@ -1269,6 +1278,44 @@
                     </div>
                 </div>
 
+                <!-- Xbox -->
+                <div class="collapsible-section">
+                    <div class="collapsible-header" onclick="toggleCollapsible(this)">
+                        <div class="section-icon xbox">X</div>
+                        <div class="header-text">
+                            <div class="section-title">Xbox</div>
+                            <div class="section-description">Connect to your Xbox library and Game Pass</div>
+                        </div>
+                        <div class="collapsible-toggle">▼</div>
+                    </div>
+                    <div class="collapsible-content">
+                        <div class="collapsible-content-inner">
+                            <div class="form-group">
+                                <label for="xbox_xsts_token">Xbox XSTS Token</label>
+                                <input type="password" id="xbox_xsts_token" name="xbox_xsts_token"
+                                       value="{{ settings.xbox_xsts_token }}"
+                                       placeholder="Paste your Xbox XSTS token">
+                                <div class="instructions-box" style="margin-top: 10px;">
+                                    <p style="margin-bottom: 8px; color: #e4e4e4;">Use the <strong>Backlogia Helper</strong> bookmarklet to get your Xbox token:</p>
+                                    <ol>
+                                        <li>Install the bookmarklet from the top of this page (drag to bookmarks bar)</li>
+                                        <li>Sign in to <a href="https://www.xbox.com" target="_blank">xbox.com</a></li>
+                                        <li>Navigate to <a href="https://www.xbox.com/en-US/play" target="_blank">Xbox Cloud Gaming</a></li>
+                                        <li>Click the bookmarklet in your bookmarks bar</li>
+                                        <li>If a token is found, click to copy it. Otherwise, follow the manual instructions shown.</li>
+                                    </ol>
+                                    <p style="margin-top: 10px; color: #f0ad4e; font-size: 0.8rem;">
+                                        <strong>Note:</strong> Tokens expire. If sync fails, get a new token.
+                                    </p>
+                                    <p style="margin-top: 8px; color: #888; font-size: 0.8rem;">
+                                        Game Pass catalog is public and will sync without a token. Token is only needed for your owned games.
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
                 <!-- Ubisoft -->
                 <div class="collapsible-section">
                     <div class="collapsible-header" onclick="toggleCollapsible(this)">
@@ -1698,7 +1745,7 @@ LOCAL_GAMES_DIR_2=/another/path/to/games</pre>
         // Steam and EA code runs inline (CSP blocks external scripts on those sites)
         // Ubisoft loads external script (needs API access to Backlogia)
         function generateBookmarkletCode(localUrl) {
-            const code = `javascript:(function(){var h=location.hostname;if(h.includes("steamcommunity.com")){try{var d=document.body.innerHTML.match(/g_rgProfileData\\s*=\\s*(\\{[^}]+\\})/);if(!d)return alert("Steam profile data not found!");var p=JSON.parse(d[1].replace(/\\\\'/g,"'"));var s=p.steamid;if(!s)return alert("Steam ID not found!");var o=document.createElement("div");o.innerHTML='<div style="position:fixed;top:20px;right:20px;background:linear-gradient(135deg,#1b2838,#2a475e);padding:20px 25px;border-radius:12px;box-shadow:0 8px 32px rgba(0,0,0,0.4);z-index:999999;font-family:-apple-system,BlinkMacSystemFont,sans-serif;border:1px solid #66c0f4;min-width:280px"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px"><span style="color:#66c0f4;font-size:12px;text-transform:uppercase;letter-spacing:1px">Steam ID</span><button onclick="this.closest(\\'div\\').parentElement.remove()" style="background:none;border:none;color:#8f98a0;cursor:pointer;font-size:18px;padding:0;line-height:1">&times;</button></div><div style="background:#171a21;padding:12px 15px;border-radius:6px;margin-bottom:15px"><code style="color:#fff;font-size:16px;font-family:monospace">'+s+'</code></div><button id=_scb style="width:100%;padding:10px 15px;background:linear-gradient(90deg,#47bfff,#1a9fff);border:none;border-radius:6px;color:#fff;font-weight:600;cursor:pointer;font-size:14px">Copy to Clipboard</button><div style="margin-top:12px;padding-top:12px;border-top:1px solid #2a475e;color:#8f98a0;font-size:11px"><strong style="color:#c7d5e0">'+p.personaname+'</strong></div></div>';document.body.appendChild(o);o.querySelector("#_scb").onclick=function(){navigator.clipboard.writeText(s).then(function(){this.textContent="Copied!";this.style.background="linear-gradient(90deg,#5ba32b,#4a8c24)"}.bind(this))}}catch(e){alert("Error: "+e.message)}}else if(h.includes("ea.com")){(async function(){try{var r=await fetch("https://accounts.ea.com/connect/auth?client_id=ORIGIN_JS_SDK&response_type=token&redirect_uri=nucleus:rest&prompt=none",{credentials:"include"});var j=await r.json();if(j.access_token){var t=j.access_token;var o=document.createElement("div");o.innerHTML='<div style="position:fixed;top:20px;right:20px;background:linear-gradient(135deg,#1a1a2e,#16213e);padding:20px 25px;border-radius:12px;box-shadow:0 8px 32px rgba(0,0,0,0.4);z-index:999999;font-family:-apple-system,BlinkMacSystemFont,sans-serif;border:1px solid #ff4747;min-width:320px;max-width:400px"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px"><span style="color:#ff4747;font-size:12px;text-transform:uppercase;letter-spacing:1px">EA Bearer Token</span><button onclick="this.closest(\\'div\\').parentElement.remove()" style="background:none;border:none;color:#888;cursor:pointer;font-size:18px">&times;</button></div><div style="background:#0d0d1a;padding:12px 15px;border-radius:6px;margin-bottom:15px;word-break:break-all;max-height:150px;overflow-y:auto"><code style="color:#e4e4e4;font-size:11px;font-family:monospace">'+t.substring(0,50)+'...</code></div><button id=_eacb style="width:100%;padding:10px 15px;background:linear-gradient(90deg,#ff4747,#cc3333);border:none;border-radius:6px;color:#fff;font-weight:600;cursor:pointer;font-size:14px">Copy Token</button><div style="margin-top:12px;color:#888;font-size:11px">Token expires in ~1 hour</div></div>';document.body.appendChild(o);o.querySelector("#_eacb").onclick=function(){navigator.clipboard.writeText(t).then(function(){this.textContent="Copied!";this.style.background="linear-gradient(90deg,#4caf50,#2e7d32)"}.bind(this))}}else{alert("EA Auth Error: "+(j.error||"Not logged in"))}}catch(e){alert("Error: "+e.message)}})()}else if(h.includes("account.ubisoft.com")){window.__BACKLOGIA_URL__="${localUrl}";var sc=document.createElement("script");sc.src="${localUrl}/static/js/bookmarklet.js?t="+Date.now();document.body.appendChild(sc)}else{window.__BACKLOGIA_URL__="${localUrl}";var sc=document.createElement("script");sc.src="${localUrl}/static/js/bookmarklet.js?t="+Date.now();document.body.appendChild(sc)}})();`;
+            const code = `javascript:(function(){var h=location.hostname;if(h.includes("steamcommunity.com")){try{var d=document.body.innerHTML.match(/g_rgProfileData\\s*=\\s*(\\{[^}]+\\})/);if(!d)return alert("Steam profile data not found!");var p=JSON.parse(d[1].replace(/\\\\'/g,"'"));var s=p.steamid;if(!s)return alert("Steam ID not found!");var o=document.createElement("div");o.innerHTML='<div style="position:fixed;top:20px;right:20px;background:linear-gradient(135deg,#1b2838,#2a475e);padding:20px 25px;border-radius:12px;box-shadow:0 8px 32px rgba(0,0,0,0.4);z-index:999999;font-family:-apple-system,BlinkMacSystemFont,sans-serif;border:1px solid #66c0f4;min-width:280px"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px"><span style="color:#66c0f4;font-size:12px;text-transform:uppercase;letter-spacing:1px">Steam ID</span><button onclick="this.closest(\\'div\\').parentElement.remove()" style="background:none;border:none;color:#8f98a0;cursor:pointer;font-size:18px;padding:0;line-height:1">&times;</button></div><div style="background:#171a21;padding:12px 15px;border-radius:6px;margin-bottom:15px"><code style="color:#fff;font-size:16px;font-family:monospace">'+s+'</code></div><button id=_scb style="width:100%;padding:10px 15px;background:linear-gradient(90deg,#47bfff,#1a9fff);border:none;border-radius:6px;color:#fff;font-weight:600;cursor:pointer;font-size:14px">Copy to Clipboard</button><div style="margin-top:12px;padding-top:12px;border-top:1px solid #2a475e;color:#8f98a0;font-size:11px"><strong style="color:#c7d5e0">'+p.personaname+'</strong></div></div>';document.body.appendChild(o);o.querySelector("#_scb").onclick=function(){navigator.clipboard.writeText(s).then(function(){this.textContent="Copied!";this.style.background="linear-gradient(90deg,#5ba32b,#4a8c24)"}.bind(this))}}catch(e){alert("Error: "+e.message)}}else if(h.includes("ea.com")){(async function(){try{var r=await fetch("https://accounts.ea.com/connect/auth?client_id=ORIGIN_JS_SDK&response_type=token&redirect_uri=nucleus:rest&prompt=none",{credentials:"include"});var j=await r.json();if(j.access_token){var t=j.access_token;var o=document.createElement("div");o.innerHTML='<div style="position:fixed;top:20px;right:20px;background:linear-gradient(135deg,#1a1a2e,#16213e);padding:20px 25px;border-radius:12px;box-shadow:0 8px 32px rgba(0,0,0,0.4);z-index:999999;font-family:-apple-system,BlinkMacSystemFont,sans-serif;border:1px solid #ff4747;min-width:320px;max-width:400px"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px"><span style="color:#ff4747;font-size:12px;text-transform:uppercase;letter-spacing:1px">EA Bearer Token</span><button onclick="this.closest(\\'div\\').parentElement.remove()" style="background:none;border:none;color:#888;cursor:pointer;font-size:18px">&times;</button></div><div style="background:#0d0d1a;padding:12px 15px;border-radius:6px;margin-bottom:15px;word-break:break-all;max-height:150px;overflow-y:auto"><code style="color:#e4e4e4;font-size:11px;font-family:monospace">'+t.substring(0,50)+'...</code></div><button id=_eacb style="width:100%;padding:10px 15px;background:linear-gradient(90deg,#ff4747,#cc3333);border:none;border-radius:6px;color:#fff;font-weight:600;cursor:pointer;font-size:14px">Copy Token</button><div style="margin-top:12px;color:#888;font-size:11px">Token expires in ~1 hour</div></div>';document.body.appendChild(o);o.querySelector("#_eacb").onclick=function(){navigator.clipboard.writeText(t).then(function(){this.textContent="Copied!";this.style.background="linear-gradient(90deg,#4caf50,#2e7d32)"}.bind(this))}}else{alert("EA Auth Error: "+(j.error||"Not logged in"))}}catch(e){alert("Error: "+e.message)}})()}else if(h.includes("xbox.com")||h.includes("xboxlive.com")){(function(){try{var t=null;var c=document.cookie.split(";");for(var i=0;i<c.length;i++){var ck=c[i].trim();if(ck.indexOf("XBXXtk")===0){try{var v=decodeURIComponent(ck.split("=").slice(1).join("="));var j=JSON.parse(v);if(j.tokenData&&j.tokenData.token){t=j.tokenData.token;break}}catch(e){}}}if(!t){var scripts=document.querySelectorAll("script:not([src])");for(var i=0;i<scripts.length;i++){var m=scripts[i].textContent.match(/["'](XBL3\\.0\\s+x=[^"']+)["']/);if(m){t=m[1];break}}}var o=document.createElement("div");o.innerHTML='<div style="position:fixed;top:20px;right:20px;background:linear-gradient(135deg,#1a1a2e,#16213e);padding:20px 25px;border-radius:12px;box-shadow:0 8px 32px rgba(0,0,0,0.4);z-index:999999;font-family:-apple-system,BlinkMacSystemFont,sans-serif;border:1px solid #107C10;min-width:320px;max-width:400px"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px"><span style="color:#107C10;font-size:12px;text-transform:uppercase;letter-spacing:1px">Xbox Token</span><button onclick="this.closest(\\'div\\').parentElement.remove()" style="background:none;border:none;color:#888;cursor:pointer;font-size:18px">&times;</button></div><div id=__xbcontent__></div></div>';document.body.appendChild(o);var cnt=o.querySelector("#__xbcontent__");if(t){cnt.innerHTML='<div style="background:#0d0d1a;padding:12px 15px;border-radius:6px;margin-bottom:15px;word-break:break-all;max-height:150px;overflow-y:auto"><code style="color:#e4e4e4;font-size:11px;font-family:monospace">'+t.substring(0,60)+'...</code></div><button id=_xbcb style="width:100%;padding:10px 15px;background:linear-gradient(90deg,#107C10,#0e6b0e);border:none;border-radius:6px;color:#fff;font-weight:600;cursor:pointer;font-size:14px">Copy Token</button><div style="margin-top:12px;color:#888;font-size:11px">Token expires periodically. Paste in Backlogia settings.</div>';o.querySelector("#_xbcb").onclick=function(){navigator.clipboard.writeText(t).then(function(){this.textContent="Copied!";this.style.background="linear-gradient(90deg,#4caf50,#2e7d32)"}.bind(this))}}else{cnt.innerHTML='<p style="color:#f0ad4e;margin-bottom:12px">Could not find token automatically.</p><p style="color:#ccc;font-size:12px">Open DevTools (F12) → Network tab, reload the page, and look for requests with Authorization header starting with XBL3.0</p>'}}catch(e){alert("Error: "+e.message)}})()}else if(h.includes("account.ubisoft.com")){window.__BACKLOGIA_URL__="${localUrl}";var sc=document.createElement("script");sc.src="${localUrl}/static/js/bookmarklet.js?t="+Date.now();document.body.appendChild(sc)}else{window.__BACKLOGIA_URL__="${localUrl}";var sc=document.createElement("script");sc.src="${localUrl}/static/js/bookmarklet.js?t="+Date.now();document.body.appendChild(sc)}})();`;
             return code;
         }
 

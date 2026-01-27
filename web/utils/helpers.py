@@ -53,6 +53,11 @@ def get_store_url(store, store_id, extra_data=None):
     elif store == "amazon":
         # Amazon Games - link to game library
         return "https://gaming.amazon.com/home"
+    elif store == "xbox":
+        # Xbox Store URL
+        if store_id:
+            return f"https://www.xbox.com/games/store/{store_id}"
+        return None
     return None
 
 
@@ -65,18 +70,32 @@ def group_games_by_igdb(games):
         game_dict = dict(game)
         igdb_id = game_dict.get("igdb_id")
 
+        # Check if this game has is_streaming flag in extra_data
+        is_streaming = False
+        extra_data = game_dict.get("extra_data")
+        if extra_data:
+            try:
+                data = json.loads(extra_data) if isinstance(extra_data, str) else extra_data
+                is_streaming = data.get("is_streaming", False)
+            except (json.JSONDecodeError, TypeError):
+                pass
+
         if igdb_id:
             if igdb_id not in grouped:
                 grouped[igdb_id] = {
                     "primary": game_dict,
                     "stores": [game_dict["store"]],
                     "game_ids": [game_dict["id"]],
-                    "store_data": {game_dict["store"]: game_dict}
+                    "store_data": {game_dict["store"]: game_dict},
+                    "is_streaming": is_streaming
                 }
             else:
                 grouped[igdb_id]["stores"].append(game_dict["store"])
                 grouped[igdb_id]["game_ids"].append(game_dict["id"])
                 grouped[igdb_id]["store_data"][game_dict["store"]] = game_dict
+                # Aggregate streaming flag - if any game has it, the group has it
+                if is_streaming:
+                    grouped[igdb_id]["is_streaming"] = True
                 # Use the one with more data as primary (prefer one with playtime or better cover)
                 current_primary = grouped[igdb_id]["primary"]
                 if (game_dict.get("playtime_hours") and not current_primary.get("playtime_hours")) or \
@@ -87,7 +106,8 @@ def group_games_by_igdb(games):
                 "primary": game_dict,
                 "stores": [game_dict["store"]],
                 "game_ids": [game_dict["id"]],
-                "store_data": {game_dict["store"]: game_dict}
+                "store_data": {game_dict["store"]: game_dict},
+                "is_streaming": is_streaming
             })
 
     # Convert grouped dict to list and add non-IGDB games

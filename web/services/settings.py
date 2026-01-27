@@ -18,6 +18,7 @@ HUMBLE_SESSION_COOKIE = "humble_session_cookie"
 BATTLENET_SESSION_COOKIE = "battlenet_session_cookie"
 GOG_DB_PATH = "gog_db_path"
 EA_BEARER_TOKEN = "ea_bearer_token"
+XBOX_XSTS_TOKEN = "xbox_xsts_token"
 LOCAL_GAMES_PATHS = "local_games_paths"
 
 # Map setting keys to environment variable names
@@ -31,6 +32,7 @@ ENV_VAR_MAP = {
     BATTLENET_SESSION_COOKIE: "BATTLENET_SESSION_COOKIE",
     GOG_DB_PATH: "GOG_DB_PATH",
     EA_BEARER_TOKEN: "EA_BEARER_TOKEN",
+    XBOX_XSTS_TOKEN: "XBOX_XSTS_TOKEN",
     LOCAL_GAMES_PATHS: "LOCAL_GAMES_PATHS",
 }
 
@@ -166,6 +168,13 @@ def get_ea_credentials():
     """Get EA credentials."""
     return {
         "bearer_token": get_setting(EA_BEARER_TOKEN),
+    }
+
+
+def get_xbox_credentials():
+    """Get Xbox credentials."""
+    return {
+        "xsts_token": get_setting(XBOX_XSTS_TOKEN),
     }
 
 

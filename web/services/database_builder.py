@@ -609,6 +609,76 @@ def import_amazon_games(conn):
         return 0
 
 
+def import_xbox_games(conn):
+    """Import games from Xbox (owned + Game Pass)."""
+    print("Importing Xbox library...")
+    cursor = conn.cursor()
+
+    try:
+        from ..sources.xbox import get_xbox_library
+
+        games = get_xbox_library()
+        if not games:
+            print("  No Xbox games found or not configured")
+            print("  Add your XSTS token in Settings to import owned games")
+            print("  Game Pass catalog will be imported regardless")
+            return 0
+
+        count = 0
+        for game in games:
+            try:
+                # Build developers/publishers JSON arrays
+                developers = [game.get("developer")] if game.get("developer") else None
+                publishers = [game.get("publisher")] if game.get("publisher") else None
+
+                # Store streaming flag and other Xbox-specific data in extra_data
+                extra_data = {
+                    "is_streaming": game.get("is_streaming", False),
+                    "acquisition_type": game.get("acquisition_type"),
+                    "title_id": game.get("title_id"),
+                    "pfn": game.get("pfn"),
+                }
+
+                cursor.execute("""
+                    INSERT INTO games (
+                        name, store, store_id, cover_image,
+                        developers, publishers, release_date,
+                        extra_data, updated_at
+                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    ON CONFLICT(store, store_id) DO UPDATE SET
+                        name = excluded.name,
+                        cover_image = excluded.cover_image,
+                        developers = excluded.developers,
+                        publishers = excluded.publishers,
+                        release_date = excluded.release_date,
+                        extra_data = excluded.extra_data,
+                        updated_at = excluded.updated_at
+                """, (
+                    game.get("name"),
+                    "xbox",
+                    game.get("store_id"),
+                    game.get("cover_image"),
+                    json.dumps(developers) if developers else None,
+                    json.dumps(publishers) if publishers else None,
+                    game.get("release_date"),
+                    json.dumps(extra_data),
+                    datetime.now().isoformat()
+                ))
+                count += 1
+            except Exception as e:
+                print(f"  Error importing {game.get('name')}: {e}")
+
+        conn.commit()
+        print(f"  Imported {count} Xbox games")
+        return count
+    except ImportError:
+        print("  Xbox module not available")
+        return 0
+    except Exception as e:
+        print(f"  Xbox import error: {e}")
+        return 0
+
+
 def import_local_games(conn):
     """Import games from local folders."""
     print("Importing local games...")
