@@ -1045,7 +1045,7 @@
                 {% endif %}
                 <div class="hero-actions">
                     <a href="/game/{{ game.id }}" class="btn btn-primary">View Details</a>
-                    <button class="btn btn-secondary" onclick="openExpandedCard({{ game|tojson|e }})">Quick Look</button>
+                    <button class="btn btn-secondary" data-game-id="{{ game.id }}" onclick="openExpandedCardFromEvent(event, this)">Quick Look</button>
                 </div>
             </div>
         </div>
