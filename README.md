@@ -93,317 +93,37 @@ Connect your accounts and sync your library with a single click.
 
 ---
 
-## Setup
+## Quick Start (Docker)
 
-### Prerequisites
-
-- **Docker & Docker Compose** (for containerized installation)
-- **Python 3.11+** (for local installation only)
-- API keys for the stores you want to sync (see [Configuration](#configuration))
-
-### Option 1: Pre-built Image (Recommended)
-
-The easiest way to run Backlogia—no cloning or building required.
-
-1. **Create a directory for Backlogia**
+1. **Create a directory and download config files**
    ```bash
    mkdir backlogia && cd backlogia
-   ```
-
-2. **Download the configuration files**
-   ```bash
    curl -O https://raw.githubusercontent.com/sam1am/backlogia/main/.env.example
    curl -O https://raw.githubusercontent.com/sam1am/backlogia/main/docker-compose.ghcr.yml
-   ```
-
-3. **Create your environment file**
-   ```bash
    cp .env.example .env
    ```
 
-4. **Edit `.env` with your settings** (see [Configuration](#configuration))
+2. **Edit `.env` with your settings** (see [Configuration](docs/configuration.md))
 
-5. **Start the container**
+3. **Start the container**
    ```bash
    docker compose -f docker-compose.ghcr.yml up -d
    ```
 
-6. **Access Backlogia** at [http://localhost:5050](http://localhost:5050)
+4. **Access Backlogia** at [http://localhost:5050](http://localhost:5050)
 
-#### Updating (Pre-built Image)
-
-```bash
-docker compose -f docker-compose.ghcr.yml pull
-docker compose -f docker-compose.ghcr.yml up -d
-```
+For other installation methods, see the [Installation Guide](docs/installation.md).
 
 ---
 
-### Option 2: Build from Source (Docker)
-
-Build the image locally from the repository.
-
-1. **Clone the repository**
-   ```bash
-   git clone https://github.com/sam1am/backlogia.git
-   cd backlogia
-   ```
-
-2. **Create your environment file**
-   ```bash
-   cp .env.example .env
-   ```
-
-3. **Edit `.env` with your settings** (see [Configuration](#configuration))
-
-4. **Start the container**
-   ```bash
-   docker compose up -d
-   ```
-
-5. **Access Backlogia** at [http://localhost:5050](http://localhost:5050)
-
-#### Updating (Build from Source)
-
-```bash
-git pull
-docker compose down
-docker compose up -d --build
-```
-
----
-
-### Docker Volumes
-
-| Volume | Purpose |
-|--------|---------|
-| `./data:/data` | Database and persistent storage |
-| `./data/legendary:/root/.config/legendary` | Epic Games authentication cache |
-| `./data/nile:/root/.config/nile` | Amazon Games authentication cache |
-| `${GOG_DB_DIR}:/gog:ro` | GOG Galaxy database (read-only) |
-| `${LOCAL_GAMES_DIR_N}:/local-games-N:ro` | Local games folders 1-5 (read-only, add more in docker-compose.yml if needed) |
-
----
-
-### HTTPS Access (Optional)
-
-Enable HTTPS access via a Caddy reverse proxy. This is useful for:
-- Using the bookmarklet from HTTPS sites (avoids mixed-content blocking)
-- Accessing Backlogia from other devices on your network
-
-**Enable HTTPS:**
-
-Add to your `.env` file:
-```bash
-COMPOSE_PROFILES=https
-```
-
-Then restart:
-```bash
-docker compose down && docker compose up -d --build
-```
-
-**Access URLs:**
-
-| URL | Scope |
-|-----|-------|
-| `https://backlogia.localhost` | Local machine only |
-| `https://backlogia.local` | Any device on your network (requires mDNS) |
-
-**Network Access (backlogia.local):**
-
-On **macOS**, Docker runs in a VM and can't broadcast mDNS directly. Run this helper script in a separate terminal:
-```bash
-./scripts/advertise-mdns.sh
-```
-
-On **Linux** hosts, mDNS is advertised automatically via Avahi.
-
-**Trusting the Certificate:**
-
-Caddy generates a self-signed certificate using its own internal CA. Browsers will show a security warning until you trust this CA. Trusting it is **required** for PWA install support (service workers need a valid certificate).
-
-Run the included script to trust the certificate automatically:
-```bash
-./scripts/trust-caddy-cert.sh
-```
-
-This adds Caddy's root CA to your system trust store. Restart your browser afterward. The script supports macOS, Linux, and Windows (via Git Bash).
-
-You can also trust it manually:
-- **macOS**: `sudo security add-trusted-cert -d -r trustRoot -k /Library/Keychains/System.keychain ./data/caddy_data/caddy/pki/authorities/local/root.crt`
-- **Linux**: Copy `./data/caddy_data/caddy/pki/authorities/local/root.crt` to `/usr/local/share/ca-certificates/` and run `sudo update-ca-certificates`
-- **Windows (PowerShell, run as Administrator)**: `certutil -addstore -f Root .\data\caddy_data\caddy\pki\authorities\local\root.crt`
-
----
-
-### Authentication (Optional)
-
-Backlogia runs without authentication by default. If you're exposing your instance beyond localhost, you can enable single-user authentication to protect all routes.
-
-**Enable authentication:**
-
-Add to your `.env` file:
-```bash
-ENABLE_AUTH=true
-```
-
-Then restart the container (or application). On first visit you'll be prompted to create an owner account — this is the only account allowed on the instance.
-
-| Setting | Default | Description |
-|---------|---------|-------------|
-| `ENABLE_AUTH` | `false` | Set to `true` to require login |
-| `SESSION_EXPIRY_DAYS` | `30` | How long sessions last before requiring re-login |
-
-A session secret key is generated automatically and persisted in the database. You can logout from the Settings page.
-
----
-
-### Option 3: Local Installation
-
-#### Prerequisites (Amazon)
-1. Build the latest `nile` code: https://github.com/imLinguin/nile?tab=readme-ov-file#setting-up-dev-environment
-2. Compile `nile` into an executable: https://github.com/imLinguin/nile?tab=readme-ov-file#building-pyinstaller-executable
-3. Make sure that the compiler executable is in your `PATH` (either place it in an existing `PATH` folder or add the folder containing the executable to the `PATH` list)
-4. If you added a new folder to your `PATH` above, open a **new terminal** for the instructions below (so it receives the updated `PATH`)
-
-#### Installation
-
-1. **Clone the repository**
-   ```bash
-   git clone https://github.com/sam1am/backlogia.git
-   cd backlogia
-   ```
-
-2. **Create a virtual environment**
-   ```bash
-   python -m venv venv
-   source venv/bin/activate  # On Windows: venv\Scripts\activate
-   ```
-
-3. **Install dependencies**
-   ```bash
-   pip install -r requirements.txt
-   ```
-
-4. **Create your environment file**
-   ```bash
-   cp .env.example .env
-   ```
-
-5. **Edit `.env` with your settings** (see [Configuration](#configuration))
-
-6. **Run the application**
-   ```bash
-   python web/app.py
-   ```
-
-7. **Access Backlogia** at [http://localhost:5050](http://localhost:5050)
-
-#### Updating (Local Installation)
-
-```bash
-git pull
-pip install -r requirements.txt
-```
-
-Then restart the application.
-
----
-
-## Configuration
-
-Configure all store connections through the **Settings** page in Backlogia. Each store section includes step-by-step instructions for obtaining the required credentials.
-
-### Where to Get Credentials
-
-| Store | Credential Source |
-|-------|-------------------|
-| **Steam** | [Steam Web API](https://steamcommunity.com/dev/apikey) for API key |
-| **IGDB** | [Twitch Developer Console](https://dev.twitch.tv/console/apps) (IGDB uses Twitch auth) |
-| **Epic Games** | OAuth flow in Settings page |
-| **GOG** | Reads from local GOG Galaxy database OR uses bookmarklet import (instructions in Settings) |
-| **itch.io** | [itch.io API Keys](https://itch.io/user/settings/api-keys) |
-| **Humble Bundle** | Session cookie from browser (instructions in Settings) |
-| **Battle.net** | Session cookie from browser (instructions in Settings) |
-| **Amazon** | OAuth flow in Settings page |
-| **EA** | Bearer token via bookmarklet (instructions in Settings) |
-| **Xbox / Game Pass** | XSTS token via bookmarklet or browser DevTools (instructions in Settings). Game Pass catalog syncs without authentication. |
-| **Ubisoft** | Bookmarklet import from account.ubisoft.com (instructions in Settings) |
-| **Local Folder** | Configure paths in `.env` file (see [Local Games](#local-games) below) |
-
-### Local Games
-
-Import games from local folders on your machine. Each subfolder is treated as a game and matched to IGDB for metadata.
-
-**Setup:**
-
-1. Add your game folder paths to `.env` (up to 5 by default):
-   ```bash
-   LOCAL_GAMES_DIR_1=/path/to/games
-   LOCAL_GAMES_DIR_2=/mnt/storage/more-games
-   # Add more in docker-compose.yml if you need more than 5
-   ```
-
-2. Restart the container (paths are mounted automatically):
-   ```bash
-   docker compose down && docker compose up -d
-   ```
-
-3. Click "Sync Local" in Settings to import games
-
-**Folder Structure:**
-```
-/path/to/games/
-├── The Witcher 3/          → Imported as "The Witcher 3"
-├── DOOM 2016/              → Imported as "DOOM 2016"
-└── Hollow Knight/          → Imported as "Hollow Knight"
-```
-
-**Override File (game.json):**
-
-For better IGDB matching or custom names, create a `game.json` file inside any game folder:
-
-```json
-{
-  "name": "The Witcher 3: Wild Hunt",
-  "igdb_id": 1942
-}
-```
-
-All fields are optional:
-
-| Field | Description |
-|-------|-------------|
-| `name` | Override the game name (used for display and IGDB matching) |
-| `igdb_id` | Manually specify the IGDB game ID for exact matching |
-| `description` | Custom description |
-| `developers` | Array of developer names, e.g. `["CD Projekt Red"]` |
-| `genres` | Array of genres, e.g. `["RPG", "Action"]` |
-| `release_date` | Release date in ISO format, e.g. `"2015-05-19"` |
-| `cover_image` | URL to a custom cover image |
-
-**Example game.json:**
-```json
-{
-  "name": "DOOM (2016)",
-  "igdb_id": 7351,
-  "developers": ["id Software"],
-  "genres": ["FPS", "Action"]
-}
-```
-
-After syncing local games, run "Sync Missing Metadata" to fetch cover images, ratings, and other data from IGDB.
-
----
-
-## Tech Stack
-
-- **Backend**: Flask (Python)
-- **Database**: SQLite
-- **Frontend**: Jinja2 templates, vanilla JavaScript
-- **Metadata**: IGDB API integration
-- **Deployment**: Docker + Docker Compose
+## Documentation
+
+| Document | Description |
+|----------|-------------|
+| [Installation Guide](docs/installation.md) | All installation options (Docker pre-built, build from source, local), Docker volumes, and updating |
+| [Configuration](docs/configuration.md) | Store credentials, API keys, and local game folder setup |
+| [HTTPS & Security](docs/https-and-security.md) | HTTPS via Caddy reverse proxy and optional authentication |
+| [Project Information](docs/project-info.md) | Tech stack and general project details |
 
 ---
 
@@ -415,7 +135,7 @@ Backlogia is built on the shoulders of these excellent open-source projects:
 - **[Nile](https://github.com/imLinguin/nile)** — Amazon Games integration
 - **[PlayniteExtensions](https://github.com/Jeshibu/PlayniteExtensions)** — EA library integration method
 
-Backlogia was built with assistance from Claude and other AI models. 
+Backlogia was built with assistance from Anthropic's Claude and other AI models.
 
 ---
 
