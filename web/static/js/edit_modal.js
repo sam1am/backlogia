@@ -223,6 +223,18 @@
     font-weight: 600;
     box-shadow: 0 0 0 1px currentColor;
 }
+/* Suggested (auto-derived from hours) — dashed border, no fill */
+.em-playtime-btn.suggested {
+    border-style: dashed;
+    opacity: 0.75;
+    font-style: italic;
+}
+.em-playtime-btn.suggested::after {
+    content: ' · auto';
+    font-size: 0.75em;
+    opacity: 0.65;
+    font-style: normal;
+}
 .em-playtime-clear {
     background: rgba(244,67,54,0.1);
     color: #f44336;
@@ -335,6 +347,7 @@
     let _originalTagsJSON   = null; // to detect changes
     let _selectedLabel      = null; // working copy for playtime_label
     let _originalLabel      = null; // to detect changes
+    let _playtimeHours      = null; // store value, used to derive suggested label
     let _autocompleteHi     = -1;   // highlighted index in dropdown
 
     /* ------------------------------------------------------------------ */
@@ -364,6 +377,7 @@
         // Resolve initial playtime label
         _selectedLabel  = currentData.playtime_label || null;
         _originalLabel  = _selectedLabel;
+        _playtimeHours  = (currentData.playtime_hours != null) ? parseFloat(currentData.playtime_hours) : null;
 
         // Update title
         const n = _gameIds.length;
@@ -387,9 +401,10 @@
         renderPlaytimeButtons();
 
         // Show store playtime if single game
+        // Show store playtime if single game (renderPlaytimeButtons will add suggestion text)
         const storePt = document.getElementById('em-store-playtime');
-        if (_gameIds.length === 1 && currentData.playtime_hours) {
-            storePt.textContent = `Store value: ${parseFloat(currentData.playtime_hours).toFixed(1)} h`;
+        if (_gameIds.length === 1 && _playtimeHours != null) {
+            storePt.textContent = `Store value: ${_playtimeHours.toFixed(1)} h`;
         } else {
             storePt.textContent = '';
         }
@@ -534,18 +549,43 @@
     /* Playtime                                                             */
     /* ------------------------------------------------------------------ */
 
+    function derivedLabelFromHours(hours) {
+        if (hours == null) return null;
+        if (hours === 0)   return 'unplayed';
+        if (hours <= 2)    return 'tried';
+        if (hours <= 20)   return 'played';
+        return 'heavily_played';
+    }
+
     function renderPlaytimeButtons() {
         const grid = document.getElementById('em-playtime-grid');
         grid.innerHTML = '';
 
+        // Suggested label: only shown when no manual selection is active
+        const suggested = (_selectedLabel === null) ? derivedLabelFromHours(_playtimeHours) : null;
+
         PLAYTIME_LABELS.forEach(label => {
-            const c = PLAYTIME_COLORS[label];
+            const c   = PLAYTIME_COLORS[label];
+            const isActive    = label === _selectedLabel;
+            const isSuggested = !isActive && label === suggested;
             const btn = document.createElement('button');
-            btn.className = 'em-playtime-btn' + (label === _selectedLabel ? ' active' : '');
+            btn.className = 'em-playtime-btn'
+                + (isActive    ? ' active'    : '')
+                + (isSuggested ? ' suggested' : '');
             btn.textContent = PLAYTIME_DISPLAY[label] || label;
-            btn.style.background   = label === _selectedLabel ? c.bg : 'rgba(255,255,255,0.05)';
-            btn.style.borderColor  = label === _selectedLabel ? c.border : 'rgba(255,255,255,0.1)';
-            btn.style.color        = label === _selectedLabel ? c.text : '#888';
+            if (isActive) {
+                btn.style.background  = c.bg;
+                btn.style.borderColor = c.border;
+                btn.style.color       = c.text;
+            } else if (isSuggested) {
+                btn.style.background  = 'transparent';
+                btn.style.borderColor = c.text;   // dashed via CSS class
+                btn.style.color       = c.text;
+            } else {
+                btn.style.background  = 'rgba(255,255,255,0.05)';
+                btn.style.borderColor = 'rgba(255,255,255,0.1)';
+                btn.style.color       = '#888';
+            }
             btn.onclick = () => {
                 _selectedLabel = (_selectedLabel === label) ? null : label;
                 renderPlaytimeButtons();
@@ -553,13 +593,21 @@
             grid.appendChild(btn);
         });
 
-        // Clear button (only shown when something is set)
+        // Clear button (only shown when something is explicitly set)
         if (_selectedLabel) {
             const clearBtn = document.createElement('button');
             clearBtn.className = 'em-playtime-btn em-playtime-clear';
             clearBtn.textContent = 'Clear';
             clearBtn.onclick = () => { _selectedLabel = null; renderPlaytimeButtons(); };
             grid.appendChild(clearBtn);
+        }
+
+        // Update the hours hint to reflect current suggestion state
+        const storePt = document.getElementById('em-store-playtime');
+        if (storePt && _playtimeHours != null) {
+            const derivedDisplay = suggested ? PLAYTIME_DISPLAY[suggested] : null;
+            storePt.textContent = `Store value: ${_playtimeHours.toFixed(1)} h`
+                + (derivedDisplay ? ` \u2192 "${derivedDisplay}" suggested` : '');
         }
     }
 

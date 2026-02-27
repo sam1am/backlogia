@@ -111,6 +111,27 @@
             box-shadow: 0 5px 20px rgba(102, 126, 234, 0.4);
         }
 
+        .edit-metadata-btn {
+            padding: 10px 20px;
+            background: rgba(255,255,255,0.06);
+            border: 1px solid rgba(255,255,255,0.15);
+            border-radius: 8px;
+            color: #aaa;
+            font-size: 0.9rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .edit-metadata-btn:hover {
+            background: rgba(255,255,255,0.1);
+            color: #e4e4e4;
+            border-color: rgba(255,255,255,0.3);
+        }
+
         /* Collection Modal */
         .collection-modal-overlay {
             display: none;
@@ -1242,6 +1263,9 @@
                     {% endif %}
                     <button class="add-to-collection-btn" onclick="openCollectionModal()">
                         + Add to Collection
+                    </button>
+                    <button class="edit-metadata-btn" onclick="openGameEditModal()">
+                        &#9998; Edit Metadata
                     </button>
                 </div>
             </div>

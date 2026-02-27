@@ -4,7 +4,7 @@
 
 | Layer | Technology |
 |-------|-----------|
-| **Backend** | Flask (Python) |
+| **Backend** | FastAPI (Python) |
 | **Database** | SQLite |
 | **Frontend** | Jinja2 templates, vanilla JavaScript |
 | **Metadata** | IGDB API integration, Metacritic, ProtonDB |

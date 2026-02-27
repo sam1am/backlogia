@@ -1,4 +1,4 @@
-const CACHE_NAME = 'backlogia-v1';
+const CACHE_NAME = 'backlogia-v2';
 const STATIC_ASSETS = [
   '/static/favicons/favicon.ico',
   '/static/favicons/favicon-32x32.png',

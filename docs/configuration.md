@@ -89,3 +89,34 @@ All fields are optional:
 ```
 
 After syncing local games, run "Sync Missing Metadata" to fetch cover images, ratings, and other data from IGDB.
+
+---
+
+## Metadata Overrides
+
+You can manually override two metadata fields on any game, directly from the UI. These overrides are **never overwritten by store syncs or IGDB sync**.
+
+### Genres Override
+
+Replaces the store/IGDB-provided genres with a custom list.
+
+- **Library view**: click the pencil icon (✏) on any game card, or select multiple games and click "Edit Metadata" in the action bar
+- **Game detail page**: click "Edit Metadata" next to the "+ Add to Collection" button
+- Type to search and add tags; existing genres are suggested via autocomplete
+- Leave the field empty to reset to the original store/IGDB genres
+
+### Playtime Label
+
+Assigns an explicit playtime status to a game, independently of the numeric hours reported by stores.
+
+Available labels:
+
+| Label | Meaning | Auto-derived from hours when no label is set |
+|---|---|---|
+| `Not played` | Never launched | `playtime_hours` is 0 or missing |
+| `Just tried` | A few minutes to 2 hours | `0 < hours ≤ 2` |
+| `Played` | Played for a while | `2 < hours ≤ 20` |
+| `Heavily played` | Many hours logged | `hours > 20` |
+| `Abandoned` | Started but gave up | *(explicit only)* |
+
+The label can be set via the same edit modal as genres. When no explicit label is set, the game detail page derives and displays a label from the raw `playtime_hours` value.

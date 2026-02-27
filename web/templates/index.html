@@ -1613,7 +1613,12 @@
         <div id="games-grid" class="games-grid size-medium">
             {% for grouped_game in games %}
             {% set game = grouped_game.primary %}
-            <a href="/game/{{ grouped_game.game_ids[0] }}" class="game-card" data-game-ids="{{ grouped_game.game_ids|join(',') }}">
+            <a href="/game/{{ grouped_game.game_ids[0] }}" class="game-card"
+               data-game-ids="{{ grouped_game.game_ids|join(',') }}"
+               data-genres-override="{{ game.genres_override or '' }}"
+               data-genres="{{ game.genres or '' }}"
+               data-playtime-label="{{ game.playtime_label or '' }}"
+               data-playtime-hours="{{ game.playtime_hours or '' }}">
                 <div class="game-checkbox" onclick="toggleGameSelection(event, this)"></div>
                 <button class="card-edit-btn" onclick="handleCardEditClick(event, this)" title="Edit metadata">✏</button>
                 {% set cover_url = game.cover_url_override or game.igdb_cover_url or game.cover_image %}
@@ -2333,8 +2338,14 @@
         function openBulkEditModal() {
             if (selectedGames.size === 0) return;
             const gameIds = Array.from(selectedGames).map(id => parseInt(id));
-            // Mixed selection: don't pre-fill genres
-            openEditModal(gameIds, { _mixed_genres: gameIds.length > 1 });
+            // Single card selected: pre-populate with its current metadata
+            const selectedCards = document.querySelectorAll('.game-card.selected');
+            if (selectedCards.length === 1) {
+                _openEditModalFromCard(selectedCards[0], gameIds);
+                return;
+            }
+            // Multiple cards: mixed selection, don't pre-fill
+            openEditModal(gameIds, { _mixed_genres: true });
         }
 
         // Per-card pencil button handler
@@ -2343,7 +2354,19 @@
             event.stopPropagation();
             const card = btn.closest('.game-card');
             const gameIds = card.dataset.gameIds.split(',').map(id => parseInt(id));
-            openEditModal(gameIds, {});
+            _openEditModalFromCard(card, gameIds);
+        }
+
+        // Helper: open edit modal pre-populated from a card's data attributes
+        function _openEditModalFromCard(card, gameIds) {
+            const genresOverrideRaw = card.dataset.genresOverride || '';
+            const genresRaw         = card.dataset.genres         || '';
+            openEditModal(gameIds, {
+                genres_override: genresOverrideRaw ? JSON.parse(genresOverrideRaw) : null,
+                genres:          genresRaw         ? JSON.parse(genresRaw)         : null,
+                playtime_label:  card.dataset.playtimeLabel  || null,
+                playtime_hours:  card.dataset.playtimeHours  ? parseFloat(card.dataset.playtimeHours) : null,
+            });
         }
 
         // After save: reload the page to reflect updated metadata

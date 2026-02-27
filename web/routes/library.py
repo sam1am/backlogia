@@ -52,12 +52,10 @@ def library(
         params.extend(stores)
 
     if genres:
-        # Filter by genres (JSON array stored in genres column)
-        # Use LIKE with JSON pattern matching for each genre
+        # Filter by genres, preferring genres_override if set
         genre_conditions = []
         for genre in genres:
-            # Match genre in JSON array (case-insensitive)
-            genre_conditions.append("LOWER(genres) LIKE ?")
+            genre_conditions.append("LOWER(COALESCE(genres_override, genres)) LIKE ?")
             params.append(f'%"{genre.lower()}"%')
         query += " AND (" + " OR ".join(genre_conditions) + ")"
 
@@ -123,7 +121,21 @@ def library(
         sort = "name"
     if sort in available_sorts:
         order_dir = "DESC" if order == "desc" else "ASC"
-        if sort in ["playtime_hours", "critics_score", "total_rating", "igdb_rating", "aggregated_rating", "average_rating", "metacritic_score", "metacritic_user_score"]:
+        if sort == "playtime_hours":
+            # Respect manual playtime_label when playtime_hours is NULL:
+            # COALESCE tries hours first, then falls back to a sentinel derived from the label.
+            query += f""" ORDER BY COALESCE(
+                playtime_hours,
+                CASE playtime_label
+                    WHEN 'heavily_played' THEN 1000
+                    WHEN 'abandoned'      THEN 50
+                    WHEN 'played'         THEN 11
+                    WHEN 'tried'          THEN 1
+                    WHEN 'unplayed'       THEN 0
+                    ELSE NULL
+                END
+            ) {order_dir} NULLS LAST"""
+        elif sort in ["critics_score", "total_rating", "igdb_rating", "aggregated_rating", "average_rating", "metacritic_score", "metacritic_user_score"]:
             query += f" ORDER BY {sort} {order_dir} NULLS LAST"
         else:
             query += f" ORDER BY {sort} COLLATE NOCASE {order_dir}"
@@ -141,18 +153,35 @@ def library(
     # Sort grouped games by primary game's sort field
     # Separate games with null sort values so nulls are always last
     reverse = order == "desc"
+
+    _PLAYTIME_LABEL_SENTINEL = {
+        "heavily_played": 1000,
+        "abandoned": 50,
+        "played": 11,
+        "tried": 1,
+        "unplayed": 0,
+    }
+
+    def effective_sort_value(game: dict, field: str):
+        """Return the value used for sorting, applying label-based fallback for playtime_hours."""
+        val = game.get(field)
+        if field == "playtime_hours" and val is None:
+            label = game.get("playtime_label")
+            val = _PLAYTIME_LABEL_SENTINEL.get(label)  # None if no label
+        return val
+
     with_values = []
     without_values = []
 
     for g in grouped_games:
-        val = g["primary"].get(sort)
+        val = effective_sort_value(g["primary"], sort)
         if val is None:
             without_values.append(g)
         else:
             with_values.append(g)
 
     def get_sort_key(g):
-        val = g["primary"].get(sort)
+        val = effective_sort_value(g["primary"], sort)
         if isinstance(val, str):
             return val.lower()
         return val
@@ -188,8 +217,8 @@ def library(
     """)
     collections = [{"id": row[0], "name": row[1], "game_count": row[2]} for row in cursor.fetchall()]
 
-    # Get all unique genres with counts
-    cursor.execute("SELECT genres FROM games WHERE genres IS NOT NULL AND genres != '[]'" + EXCLUDE_HIDDEN_FILTER)
+    # Get all unique genres with counts, preferring genres_override if set
+    cursor.execute("SELECT COALESCE(genres_override, genres) FROM games WHERE COALESCE(genres_override, genres) IS NOT NULL AND COALESCE(genres_override, genres) != '[]'" + EXCLUDE_HIDDEN_FILTER)
     genre_rows = cursor.fetchall()
     genre_counts = {}
     for row in genre_rows:
