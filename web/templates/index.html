@@ -766,6 +766,15 @@
             background: linear-gradient(135deg, #4caf50, #2e7d32);
         }
 
+        .ratings-bar .rating.metacritic-critic {
+            background: linear-gradient(135deg, #ffcc34, #cca32a);
+            color: #000;
+        }
+
+        .ratings-bar .rating.metacritic-user {
+            background: linear-gradient(135deg, #66b2ff, #3385cc);
+        }
+
         .streaming-pill {
             position: absolute;
             bottom: 8px;
@@ -1468,6 +1477,8 @@
                         <span class="toggle-label">Show only games without IGDB data</span>
                     </div>
                 </div>
+
+
             </div>
 
             <div class="filter-panel-footer">
@@ -1515,10 +1526,16 @@
                             {% endfor %}
                         </div>
                         {% if game.total_rating or game.igdb_rating or game.aggregated_rating %}
-                        <div class="ratings-bar" title="Total | User | Critic">
+                        <div class="ratings-bar" data-score-type="igdb" title="Total | User | Critic">
                             {% if game.total_rating %}<span class="rating total">{{ game.total_rating|round|int }}</span>{% endif %}
                             {% if game.igdb_rating %}<span class="rating user">{{ game.igdb_rating|round|int }}</span>{% endif %}
                             {% if game.aggregated_rating %}<span class="rating critic">{{ game.aggregated_rating|round|int }}</span>{% endif %}
+                        </div>
+                        {% endif %}
+                        {% if (game.metacritic_score and game.metacritic_score != -1) or game.metacritic_user_score %}
+                        <div class="ratings-bar" data-score-type="metacritic" style="display:none;" title="Metascore | User">
+                            {% if game.metacritic_score and game.metacritic_score != -1 %}<span class="rating metacritic-critic">{{ game.metacritic_score }}</span>{% endif %}
+                            {% if game.metacritic_user_score %}<span class="rating metacritic-user">{{ (game.metacritic_user_score * 10)|round|int }}</span>{% endif %}
                         </div>
                         {% endif %}
                     </div>
@@ -1599,10 +1616,29 @@
             grid.classList.add('size-' + size);
         }
 
+        // Score display toggle
+        function setScoreDisplay(type) {
+            document.querySelectorAll('.ratings-bar[data-score-type]').forEach(el => {
+                el.style.display = 'none';
+            });
+            if (type !== 'none') {
+                document.querySelectorAll(`.ratings-bar[data-score-type="${type}"]`).forEach(el => {
+                    el.style.display = 'flex';
+                });
+            }
+            localStorage.setItem('scoreDisplay', type);
+            const select = document.getElementById('filter-score-display');
+            if (select && select.value !== type) select.value = type;
+        }
+
         // Load saved preference on page load
         document.addEventListener('DOMContentLoaded', function() {
             const savedSize = localStorage.getItem('gridSize') || 'medium';
             setGridSize(savedSize);
+
+            // Apply saved score display preference
+            const savedScoreDisplay = localStorage.getItem('scoreDisplay') || 'igdb';
+            setScoreDisplay(savedScoreDisplay);
 
             // Restore filter/sort preferences from localStorage if no URL params
             restoreFilterPreferences();
@@ -1631,7 +1667,8 @@
 
         // Save filter/sort preferences to localStorage
         function saveFilterPreferences(stores, genres, search, sort, order, excludeStreaming, collection, protondbTier, noIgdb) {
-            const prefs = { stores, genres, search, sort, order, excludeStreaming: excludeStreaming || false, collection: collection || 0, protondbTier: protondbTier || '', noIgdb: noIgdb || false };
+            const scoreDisplay = localStorage.getItem('scoreDisplay') || 'igdb';
+            const prefs = { stores, genres, search, sort, order, excludeStreaming: excludeStreaming || false, collection: collection || 0, protondbTier: protondbTier || '', noIgdb: noIgdb || false, scoreDisplay };
             localStorage.setItem('filterPreferences', JSON.stringify(prefs));
         }
 
@@ -1660,6 +1697,10 @@
             const saved = localStorage.getItem('filterPreferences');
             if (saved) {
                 const prefs = JSON.parse(saved);
+                // Restore score display from saved preferences
+                if (prefs.scoreDisplay) {
+                    setScoreDisplay(prefs.scoreDisplay);
+                }
                 if ((prefs.stores && prefs.stores.length) || (prefs.genres && prefs.genres.length) ||
                     prefs.search || (prefs.sort && prefs.sort !== 'name') || (prefs.order && prefs.order !== 'asc') ||
                     prefs.excludeStreaming || prefs.collection || prefs.protondbTier || prefs.noIgdb) {

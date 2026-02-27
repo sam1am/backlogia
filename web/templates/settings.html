@@ -966,6 +966,15 @@
                 </div>
             </div>
 
+            <div class="form-group">
+                <label>Score Display</label>
+                <div class="size-options">
+                    <button class="size-btn score-btn" data-score="igdb" onclick="setScoreDisplay('igdb')">IGDB</button>
+                    <button class="size-btn score-btn" data-score="metacritic" onclick="setScoreDisplay('metacritic')">Metacritic</button>
+                    <button class="size-btn score-btn" data-score="none" onclick="setScoreDisplay('none')">None</button>
+                </div>
+            </div>
+
             {% if hidden_count %}
             <div class="form-group" style="margin-top: 20px;">
                 <label>Hidden Games</label>
@@ -1718,10 +1727,24 @@ LOCAL_GAMES_DIR_2=/another/path/to/games</pre>
             localStorage.setItem('gridSize', size);
         }
 
-        // Load saved preference on page load
+        // Score Display
+        function setScoreDisplay(type) {
+            document.querySelectorAll('.score-btn').forEach(btn => {
+                btn.classList.remove('active');
+                if (btn.dataset.score === type) {
+                    btn.classList.add('active');
+                }
+            });
+            localStorage.setItem('scoreDisplay', type);
+        }
+
+        // Load saved preferences on page load
         document.addEventListener('DOMContentLoaded', function() {
             const savedSize = localStorage.getItem('gridSize') || 'medium';
             setGridSize(savedSize);
+
+            const savedScore = localStorage.getItem('scoreDisplay') || 'igdb';
+            setScoreDisplay(savedScore);
         });
 
         // Status Message
