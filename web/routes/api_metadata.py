@@ -9,6 +9,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 
 from ..dependencies import get_db
+from ..utils.filters import PLAYTIME_LABELS
 
 router = APIRouter(tags=["Metadata"])
 
@@ -48,9 +49,6 @@ class BulkGameIdsRequest(BaseModel):
 class BulkAddToCollectionRequest(BaseModel):
     game_ids: list[int]
     collection_id: int
-
-
-PLAYTIME_LABELS = {"unplayed", "tried", "played", "heavily_played", "abandoned"}
 
 
 class BulkEditRequest(BaseModel):
@@ -463,8 +461,6 @@ def bulk_edit_games(body: BulkEditRequest, conn: sqlite3.Connection = Depends(ge
     Only fields whose companion ``update_*`` flag is ``True`` are written.
     Passing ``None`` with the flag set to ``True`` clears the stored value.
     """
-    import json as _json
-
     game_ids = body.game_ids
     if not game_ids:
         raise HTTPException(status_code=400, detail="No games selected")
@@ -486,7 +482,7 @@ def bulk_edit_games(body: BulkEditRequest, conn: sqlite3.Connection = Depends(ge
     params: list = []
 
     if body.update_genres_override:
-        genres_json = _json.dumps(body.genres_override) if body.genres_override is not None else None
+        genres_json = json.dumps(body.genres_override) if body.genres_override is not None else None
         set_clauses.append("genres_override = ?")
         params.append(genres_json)
 

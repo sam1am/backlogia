@@ -12,3 +12,12 @@ EXCLUDE_HIDDEN_FILTER = EXCLUDE_DUPLICATES_FILTER + """
     AND (hidden IS NULL OR hidden = 0)
     AND (removed IS NULL OR removed = 0)
 """
+
+# Valid playtime label values (used by the edit API and the library filter)
+PLAYTIME_LABELS: frozenset[str] = frozenset({
+    "unplayed",
+    "tried",
+    "played",
+    "heavily_played",
+    "abandoned",
+})

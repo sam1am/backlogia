@@ -11,7 +11,7 @@ from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 
 from ..dependencies import get_db
-from ..utils.filters import EXCLUDE_HIDDEN_FILTER, EXCLUDE_DUPLICATES_FILTER
+from ..utils.filters import EXCLUDE_HIDDEN_FILTER, EXCLUDE_DUPLICATES_FILTER, PLAYTIME_LABELS
 from ..utils.helpers import parse_json_field, get_store_url, group_games_by_igdb
 
 router = APIRouter()
@@ -83,8 +83,7 @@ def library(
 
     # Playtime label filter – supports multiple values; unplayed/tried/played
     # also match games with no explicit label using playtime_hours ranges.
-    VALID_PLAYTIME_LABELS = {"unplayed", "tried", "played", "heavily_played", "abandoned"}
-    active_labels = [l for l in playtime_label if l in VALID_PLAYTIME_LABELS]
+    active_labels = [l for l in playtime_label if l in PLAYTIME_LABELS]
     if active_labels:
         label_conditions: list[str] = []
         for lbl in active_labels:
