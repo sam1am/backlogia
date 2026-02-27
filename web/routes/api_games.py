@@ -1,12 +1,13 @@
 # routes/api_games.py
 # API endpoints for games data
 
+import json
 import sqlite3
 
 from fastapi import APIRouter, Depends
 
 from ..dependencies import get_db
-from ..utils.filters import EXCLUDE_DUPLICATES_FILTER
+from ..utils.filters import EXCLUDE_DUPLICATES_FILTER, EXCLUDE_HIDDEN_FILTER
 
 router = APIRouter(tags=["Games"])
 
@@ -41,3 +42,32 @@ def api_stats(conn: sqlite3.Connection = Depends(get_db)):
         "by_store": by_store,
         "total_playtime_hours": round(total_playtime, 1)
     }
+
+
+@router.get("/api/genres")
+def api_genres(conn: sqlite3.Connection = Depends(get_db)):
+    """Get all distinct genres present in the library.
+
+    Merges genres from the store-provided ``genres`` column and from the
+    user-defined ``genres_override`` column, returning a sorted, de-duplicated
+    list of genre names.
+    """
+    cursor = conn.cursor()
+    cursor.execute(
+        "SELECT genres, genres_override FROM games WHERE 1=1" + EXCLUDE_HIDDEN_FILTER
+    )
+    rows = cursor.fetchall()
+
+    genres_set: set[str] = set()
+    for row in rows:
+        for field in (row[0], row[1]):
+            if not field:
+                continue
+            try:
+                items = json.loads(field)
+                if isinstance(items, list):
+                    genres_set.update(str(g).strip() for g in items if g)
+            except (json.JSONDecodeError, TypeError):
+                pass
+
+    return sorted(genres_set)

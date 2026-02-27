@@ -35,6 +35,24 @@ def ensure_extra_columns():
     conn.close()
 
 
+def ensure_edit_overrides():
+    """Add genres_override and playtime_label columns to the games table."""
+    conn = sqlite3.connect(DATABASE_PATH)
+    cursor = conn.cursor()
+    cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='games'")
+    if not cursor.fetchone():
+        conn.close()
+        return
+    cursor.execute("PRAGMA table_info(games)")
+    columns = {row[1] for row in cursor.fetchall()}
+    if "genres_override" not in columns:
+        cursor.execute("ALTER TABLE games ADD COLUMN genres_override TEXT")
+    if "playtime_label" not in columns:
+        cursor.execute("ALTER TABLE games ADD COLUMN playtime_label TEXT")
+    conn.commit()
+    conn.close()
+
+
 def ensure_collections_tables():
     """Create collections tables if they don't exist."""
     conn = sqlite3.connect(DATABASE_PATH)

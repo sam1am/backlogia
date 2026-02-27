@@ -281,6 +281,22 @@
             gap: 20px;
         }
 
+        .filter-col-left,
+        .filter-col-right {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .filter-toggles-row {
+            display: flex;
+            gap: 20px;
+        }
+
+        .filter-toggles-row .filter-section {
+            flex: 1;
+        }
+
         .filter-section {
             display: flex;
             flex-direction: column;
@@ -347,6 +363,11 @@
             display: flex;
             flex-direction: column;
             gap: 2px;
+        }
+
+        /* Tags list in the right column gets more room */
+        .filter-col-right > .filter-section > .filter-tags-container {
+            max-height: 440px;
         }
 
         .filter-tag-search {
@@ -423,6 +444,13 @@
         .filter-tag-option.hidden {
             display: none;
         }
+
+        /* Playtime filter chip color accents */
+        .filter-pt-unplayed input:checked ~ .tag-label { color: #aaa; }
+        .filter-pt-tried input:checked ~ .tag-label { color: #2196f3; }
+        .filter-pt-played input:checked ~ .tag-label { color: #4caf50; }
+        .filter-pt-heavily-played input:checked ~ .tag-label { color: #9c27b0; }
+        .filter-pt-abandoned input:checked ~ .tag-label { color: #f44336; }
 
         /* Toggle Switch */
         .toggle-switch {
@@ -560,6 +588,9 @@
         @media (max-width: 768px) {
             .filter-panel-grid {
                 grid-template-columns: 1fr;
+            }
+            .filter-col-right {
+                margin-top: 0;
             }
         }
 
@@ -1031,6 +1062,50 @@
             background: rgba(102, 126, 234, 0.3);
         }
 
+        .action-btn.edit {
+            background: rgba(255, 193, 7, 0.15);
+            color: #ffc107;
+            border: 1px solid rgba(255, 193, 7, 0.3);
+        }
+
+        .action-btn.edit:hover {
+            background: rgba(255, 193, 7, 0.25);
+        }
+
+        /* Per-card pencil edit button */
+        .card-edit-btn {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: rgba(0, 0, 0, 0.7);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            border-radius: 6px;
+            color: #e4e4e4;
+            font-size: 0.85rem;
+            width: 28px;
+            height: 28px;
+            cursor: pointer;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 10;
+            transition: background 0.2s, border-color 0.2s;
+            padding: 0;
+        }
+
+        .card-edit-btn:hover {
+            background: rgba(255, 193, 7, 0.3);
+            border-color: rgba(255, 193, 7, 0.6);
+        }
+
+        /* Show pencil only on pointer devices that support hover */
+        @media (hover: hover) {
+            .game-card:hover .card-edit-btn { display: flex; }
+        }
+
+        /* Never show in select mode */
+        .select-mode .card-edit-btn { display: none !important; }
+
         /* Collection Modal */
         .collection-modal-overlay {
             display: none;
@@ -1338,6 +1413,7 @@
         {% if current_collection %}{% if active_filter_count.append(1) %}{% endif %}{% endif %}
         {% if current_protondb_tier %}{% if active_filter_count.append(1) %}{% endif %}{% endif %}
         {% if current_no_igdb %}{% if active_filter_count.append(1) %}{% endif %}{% endif %}
+        {% if current_playtime_labels %}{% if active_filter_count.append(1) %}{% endif %}{% endif %}
 
         <div class="filters">
             <button class="filter-toggle-btn {% if active_filter_count %}active{% endif %}" onclick="toggleFilterPanel()" id="filter-toggle" title="Filters">
@@ -1357,6 +1433,7 @@
                     {% if current_collection %}<input type="hidden" name="collection" value="{{ current_collection }}">{% endif %}
                     {% if current_protondb_tier %}<input type="hidden" name="protondb_tier" value="{{ current_protondb_tier }}">{% endif %}
                     {% if current_no_igdb %}<input type="hidden" name="no_igdb" value="true">{% endif %}
+                    {% for lbl in current_playtime_labels %}<input type="hidden" name="playtime_label" value="{{ lbl }}">{% endfor %}
                     <input type="text" name="search" placeholder="Search games..." value="{{ current_search }}">
                 </form>
             </div>
@@ -1378,7 +1455,7 @@
                 <option value="playtime_hours-desc" {% if current_sort == 'playtime_hours' %}selected{% endif %}>Most Played</option>
             </select>
 
-            {% set has_any_filter = current_stores or current_genres or current_search or current_exclude_streaming or current_collection or current_protondb_tier or current_no_igdb or (current_sort != 'name') or (current_sort == 'name' and current_order != 'asc') %}
+            {% set has_any_filter = current_stores or current_genres or current_search or current_exclude_streaming or current_collection or current_protondb_tier or current_no_igdb or current_playtime_labels or (current_sort != 'name') or (current_sort == 'name' and current_order != 'asc') %}
             {% if has_any_filter %}
             <button class="reset-filters-btn" onclick="resetAllFilters()" title="Reset all filters">
                 &#10005;
@@ -1393,81 +1470,126 @@
         <!-- Filter Panel -->
         <div class="filter-panel" id="filter-panel">
             <div class="filter-panel-grid">
-                <!-- Stores -->
-                <div class="filter-section">
-                    <div class="filter-section-title">Stores</div>
-                    <div class="filter-store-list" id="filter-stores">
-                        {% for store, count in store_counts.items() %}
-                        <label class="filter-store-chip {% if store in current_stores %}selected{% endif %}">
-                            <input type="checkbox" name="panel-stores" value="{{ store }}" {% if store in current_stores %}checked{% endif %}>
-                            {% if store in store_icons %}
-                            <img src="/static/images/{{ store_icons[store] }}" alt="{{ store }}">
-                            {% endif %}
-                            <span>{{ store|capitalize }}</span>
-                            <span class="chip-count">{{ count }}</span>
-                        </label>
-                        {% endfor %}
+
+                <!-- Left column: Stores + Playtime + Collection + ProtonDB -->
+                <div class="filter-col-left">
+
+                    <!-- Stores -->
+                    <div class="filter-section">
+                        <div class="filter-section-title">Stores</div>
+                        <div class="filter-store-list" id="filter-stores">
+                            {% for store, count in store_counts.items() %}
+                            <label class="filter-store-chip {% if store in current_stores %}selected{% endif %}">
+                                <input type="checkbox" name="panel-stores" value="{{ store }}" {% if store in current_stores %}checked{% endif %}>
+                                {% if store in store_icons %}
+                                <img src="/static/images/{{ store_icons[store] }}" alt="{{ store }}">
+                                {% endif %}
+                                <span>{{ store|capitalize }}</span>
+                                <span class="chip-count">{{ count }}</span>
+                            </label>
+                            {% endfor %}
+                        </div>
                     </div>
-                </div>
 
-                <!-- Tags -->
-                {% if genre_counts %}
-                <div class="filter-section">
-                    <div class="filter-section-title">Tags</div>
-                    <input type="text" class="filter-tag-search" placeholder="Search tags..." id="panel-tag-search" oninput="filterPanelTags()">
-                    <div class="filter-tags-container" id="filter-tags">
-                        {% for genre, count in genre_counts.items() %}
-                        <label class="filter-tag-option">
-                            <input type="checkbox" name="panel-genres" value="{{ genre }}" {% if genre in current_genres %}checked{% endif %}>
-                            <span class="tag-checkbox"></span>
-                            <span class="tag-label">{{ genre }}</span>
-                            <span class="tag-count">{{ count }}</span>
-                        </label>
-                        {% endfor %}
+                    <!-- Playtime -->
+                    <div class="filter-section">
+                        <div class="filter-section-title">Playtime</div>
+                        <div class="filter-tags-container" id="filter-playtime">
+                            <label class="filter-tag-option filter-pt-unplayed">
+                                <input type="checkbox" value="unplayed" {% if 'unplayed' in current_playtime_labels %}checked{% endif %}>
+                                <span class="tag-checkbox"></span>
+                                <span class="tag-label">Not played</span>
+                            </label>
+                            <label class="filter-tag-option filter-pt-tried">
+                                <input type="checkbox" value="tried" {% if 'tried' in current_playtime_labels %}checked{% endif %}>
+                                <span class="tag-checkbox"></span>
+                                <span class="tag-label">Just tried</span>
+                                <span class="tag-count">&le;&thinsp;2h</span>
+                            </label>
+                            <label class="filter-tag-option filter-pt-played">
+                                <input type="checkbox" value="played" {% if 'played' in current_playtime_labels %}checked{% endif %}>
+                                <span class="tag-checkbox"></span>
+                                <span class="tag-label">Played</span>
+                            </label>
+                            <label class="filter-tag-option filter-pt-heavily-played">
+                                <input type="checkbox" value="heavily_played" {% if 'heavily_played' in current_playtime_labels %}checked{% endif %}>
+                                <span class="tag-checkbox"></span>
+                                <span class="tag-label">Heavily played</span>
+                            </label>
+                            <label class="filter-tag-option filter-pt-abandoned">
+                                <input type="checkbox" value="abandoned" {% if 'abandoned' in current_playtime_labels %}checked{% endif %}>
+                                <span class="tag-checkbox"></span>
+                                <span class="tag-label">Abandoned</span>
+                            </label>
+                        </div>
                     </div>
-                </div>
-                {% endif %}
 
-                <!-- Exclude Streaming -->
-                <div class="filter-section">
-                    <div class="filter-section-title">Streaming</div>
-                    <div class="toggle-switch {% if current_exclude_streaming %}active{% endif %}" id="toggle-exclude-streaming" onclick="toggleSwitch(this)">
-                        <div class="toggle-track"><div class="toggle-thumb"></div></div>
-                        <span class="toggle-label">Exclude streaming-only games</span>
+                    <!-- Collection -->
+                    <div class="filter-section">
+                        <div class="filter-section-title">Collection</div>
+                        <select class="filter-select" id="filter-collection">
+                            <option value="0">All Games</option>
+                            {% for col in collections %}
+                            <option value="{{ col.id }}" {% if current_collection == col.id %}selected{% endif %}>{{ col.name }} ({{ col.game_count }})</option>
+                            {% endfor %}
+                        </select>
                     </div>
-                </div>
 
-                <!-- Collection -->
-                <div class="filter-section">
-                    <div class="filter-section-title">Collection</div>
-                    <select class="filter-select" id="filter-collection">
-                        <option value="0">All Games</option>
-                        {% for col in collections %}
-                        <option value="{{ col.id }}" {% if current_collection == col.id %}selected{% endif %}>{{ col.name }} ({{ col.game_count }})</option>
-                        {% endfor %}
-                    </select>
-                </div>
-
-                <!-- ProtonDB Tier -->
-                <div class="filter-section">
-                    <div class="filter-section-title">ProtonDB Tier</div>
-                    <select class="filter-select" id="filter-protondb">
-                        <option value="">Any</option>
-                        <option value="platinum" {% if current_protondb_tier == 'platinum' %}selected{% endif %}>Platinum</option>
-                        <option value="gold" {% if current_protondb_tier == 'gold' %}selected{% endif %}>Gold or higher</option>
-                        <option value="silver" {% if current_protondb_tier == 'silver' %}selected{% endif %}>Silver or higher</option>
-                        <option value="bronze" {% if current_protondb_tier == 'bronze' %}selected{% endif %}>Bronze or higher</option>
-                    </select>
-                </div>
-
-                <!-- No IGDB Data -->
-                <div class="filter-section">
-                    <div class="filter-section-title">IGDB Match</div>
-                    <div class="toggle-switch {% if current_no_igdb %}active{% endif %}" id="toggle-no-igdb" onclick="toggleSwitch(this)">
-                        <div class="toggle-track"><div class="toggle-thumb"></div></div>
-                        <span class="toggle-label">Show only games without IGDB data</span>
+                    <!-- ProtonDB Tier -->
+                    <div class="filter-section">
+                        <div class="filter-section-title">ProtonDB Tier</div>
+                        <select class="filter-select" id="filter-protondb">
+                            <option value="">Any</option>
+                            <option value="platinum" {% if current_protondb_tier == 'platinum' %}selected{% endif %}>Platinum</option>
+                            <option value="gold" {% if current_protondb_tier == 'gold' %}selected{% endif %}>Gold or higher</option>
+                            <option value="silver" {% if current_protondb_tier == 'silver' %}selected{% endif %}>Silver or higher</option>
+                            <option value="bronze" {% if current_protondb_tier == 'bronze' %}selected{% endif %}>Bronze or higher</option>
+                        </select>
                     </div>
+
                 </div>
+
+                <!-- Right column: Tags + Streaming & IGDB -->
+                <div class="filter-col-right">
+
+                    <!-- Tags -->
+                    {% if genre_counts %}
+                    <div class="filter-section">
+                        <div class="filter-section-title">Tags</div>
+                        <input type="text" class="filter-tag-search" placeholder="Search tags..." id="panel-tag-search" oninput="filterPanelTags()">
+                        <div class="filter-tags-container" id="filter-tags">
+                            {% for genre, count in genre_counts.items() %}
+                            <label class="filter-tag-option">
+                                <input type="checkbox" name="panel-genres" value="{{ genre }}" {% if genre in current_genres %}checked{% endif %}>
+                                <span class="tag-checkbox"></span>
+                                <span class="tag-label">{{ genre }}</span>
+                                <span class="tag-count">{{ count }}</span>
+                            </label>
+                            {% endfor %}
+                        </div>
+                    </div>
+                    {% endif %}
+
+                    <!-- Streaming + IGDB on same row -->
+                    <div class="filter-toggles-row">
+                        <div class="filter-section">
+                            <div class="filter-section-title">Streaming</div>
+                            <div class="toggle-switch {% if current_exclude_streaming %}active{% endif %}" id="toggle-exclude-streaming" onclick="toggleSwitch(this)">
+                                <div class="toggle-track"><div class="toggle-thumb"></div></div>
+                                <span class="toggle-label">Exclude streaming-only</span>
+                            </div>
+                        </div>
+                        <div class="filter-section">
+                            <div class="filter-section-title">IGDB Match</div>
+                            <div class="toggle-switch {% if current_no_igdb %}active{% endif %}" id="toggle-no-igdb" onclick="toggleSwitch(this)">
+                                <div class="toggle-track"><div class="toggle-thumb"></div></div>
+                                <span class="toggle-label">Without IGDB data only</span>
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+
             </div>
 
             <div class="filter-panel-footer">
@@ -1493,6 +1615,7 @@
             {% set game = grouped_game.primary %}
             <a href="/game/{{ grouped_game.game_ids[0] }}" class="game-card" data-game-ids="{{ grouped_game.game_ids|join(',') }}">
                 <div class="game-checkbox" onclick="toggleGameSelection(event, this)"></div>
+                <button class="card-edit-btn" onclick="handleCardEditClick(event, this)" title="Edit metadata">✏</button>
                 {% set cover_url = game.cover_url_override or game.igdb_cover_url or game.cover_image %}
                 <div class="game-cover-wrapper">
                     {% if cover_url %}
@@ -1534,6 +1657,9 @@
                 <span class="select-all-link" onclick="selectAllGames()">Select All</span>
             </div>
             <div class="action-buttons">
+                <button class="action-btn edit" onclick="openBulkEditModal()">
+                    Edit Metadata
+                </button>
                 <button class="action-btn collection" onclick="openCollectionModal()">
                     Add to Collection
                 </button>
@@ -1626,12 +1752,13 @@
             const collection = parseInt(document.getElementById('filter-collection')?.value || '0');
             const protondbTier = document.getElementById('filter-protondb')?.value || '';
             const noIgdb = document.getElementById('toggle-no-igdb')?.classList.contains('active') || false;
-            return { stores, genres, excludeStreaming, collection, protondbTier, noIgdb };
+            const playtimeLabels = Array.from(document.querySelectorAll('#filter-playtime input:checked')).map(cb => cb.value);
+            return { stores, genres, excludeStreaming, collection, protondbTier, noIgdb, playtimeLabels };
         }
 
         // Save filter/sort preferences to localStorage
-        function saveFilterPreferences(stores, genres, search, sort, order, excludeStreaming, collection, protondbTier, noIgdb) {
-            const prefs = { stores, genres, search, sort, order, excludeStreaming: excludeStreaming || false, collection: collection || 0, protondbTier: protondbTier || '', noIgdb: noIgdb || false };
+        function saveFilterPreferences(stores, genres, search, sort, order, excludeStreaming, collection, protondbTier, noIgdb, playtimeLabels) {
+            const prefs = { stores, genres, search, sort, order, excludeStreaming: excludeStreaming || false, collection: collection || 0, protondbTier: protondbTier || '', noIgdb: noIgdb || false, playtimeLabels: playtimeLabels || [] };
             localStorage.setItem('filterPreferences', JSON.stringify(prefs));
         }
 
@@ -1641,7 +1768,8 @@
             const hasUrlParams = urlParams.has('stores') || urlParams.has('genres') ||
                                  urlParams.has('search') || urlParams.has('sort') || urlParams.has('order') ||
                                  urlParams.has('exclude_streaming') || urlParams.has('collection') ||
-                                 urlParams.has('protondb_tier') || urlParams.has('no_igdb');
+                                 urlParams.has('protondb_tier') || urlParams.has('no_igdb') ||
+                                 urlParams.has('playtime_label');
 
             if (hasUrlParams) {
                 const stores = urlParams.getAll('stores');
@@ -1653,7 +1781,8 @@
                 const collection = parseInt(urlParams.get('collection') || '0');
                 const protondbTier = urlParams.get('protondb_tier') || '';
                 const noIgdb = urlParams.get('no_igdb') === 'true';
-                saveFilterPreferences(stores, genres, search, sort, order, excludeStreaming, collection, protondbTier, noIgdb);
+                const playtimeLabels = urlParams.getAll('playtime_label');
+                saveFilterPreferences(stores, genres, search, sort, order, excludeStreaming, collection, protondbTier, noIgdb, playtimeLabels);
                 return;
             }
 
@@ -1662,8 +1791,8 @@
                 const prefs = JSON.parse(saved);
                 if ((prefs.stores && prefs.stores.length) || (prefs.genres && prefs.genres.length) ||
                     prefs.search || (prefs.sort && prefs.sort !== 'name') || (prefs.order && prefs.order !== 'asc') ||
-                    prefs.excludeStreaming || prefs.collection || prefs.protondbTier || prefs.noIgdb) {
-                    const url = buildUrl(prefs.stores || [], prefs.genres || [], prefs.search || '', prefs.sort || 'name', prefs.order || 'asc', prefs.excludeStreaming || false, prefs.collection || 0, prefs.protondbTier || '', prefs.noIgdb || false);
+                    prefs.excludeStreaming || prefs.collection || prefs.protondbTier || prefs.noIgdb || (prefs.playtimeLabels && prefs.playtimeLabels.length)) {
+                    const url = buildUrl(prefs.stores || [], prefs.genres || [], prefs.search || '', prefs.sort || 'name', prefs.order || 'asc', prefs.excludeStreaming || false, prefs.collection || 0, prefs.protondbTier || '', prefs.noIgdb || false, prefs.playtimeLabels || []);
                     window.location.href = url;
                 }
             }
@@ -1692,10 +1821,11 @@
             const collection = parseInt(form.querySelector('input[name="collection"]')?.value || '0');
             const protondbTier = form.querySelector('input[name="protondb_tier"]')?.value || '';
             const noIgdb = form.querySelector('input[name="no_igdb"]')?.value === 'true' || false;
-            saveFilterPreferences(stores, genres, search, sort, order, excludeStreaming, collection, protondbTier, noIgdb);
+            const playtimeLabels = Array.from(form.querySelectorAll('input[name="playtime_label"]')).map(i => i.value);
+            saveFilterPreferences(stores, genres, search, sort, order, excludeStreaming, collection, protondbTier, noIgdb, playtimeLabels);
         }
 
-        function buildUrl(stores, genres, search, sort, order, excludeStreaming, collection, protondbTier, noIgdb) {
+        function buildUrl(stores, genres, search, sort, order, excludeStreaming, collection, protondbTier, noIgdb, playtimeLabels) {
             const params = new URLSearchParams();
             stores.forEach(store => params.append('stores', store));
             genres.forEach(genre => params.append('genres', genre));
@@ -1706,6 +1836,7 @@
             if (collection) params.set('collection', collection);
             if (protondbTier) params.set('protondb_tier', protondbTier);
             if (noIgdb) params.set('no_igdb', 'true');
+            if (playtimeLabels && playtimeLabels.length) playtimeLabels.forEach(l => params.append('playtime_label', l));
             return '?' + params.toString();
         }
 
@@ -1744,8 +1875,8 @@
             const search = '{{ current_search }}';
             const sort = '{{ current_sort }}';
             const order = '{{ current_order }}';
-            saveFilterPreferences(state.stores, state.genres, search, sort, order, state.excludeStreaming, state.collection, state.protondbTier, state.noIgdb);
-            window.location.href = buildUrl(state.stores, state.genres, search, sort, order, state.excludeStreaming, state.collection, state.protondbTier, state.noIgdb);
+            saveFilterPreferences(state.stores, state.genres, search, sort, order, state.excludeStreaming, state.collection, state.protondbTier, state.noIgdb, state.playtimeLabels);
+            window.location.href = buildUrl(state.stores, state.genres, search, sort, order, state.excludeStreaming, state.collection, state.protondbTier, state.noIgdb, state.playtimeLabels);
         }
 
         function clearAllPanelFilters() {
@@ -1765,6 +1896,7 @@
             if (collectionSelect) collectionSelect.value = '0';
             const protondbSelect = document.getElementById('filter-protondb');
             if (protondbSelect) protondbSelect.value = '';
+            document.querySelectorAll('#filter-playtime input').forEach(cb => { cb.checked = false; });
             // Clear tag search
             const tagSearch = document.getElementById('panel-tag-search');
             if (tagSearch) { tagSearch.value = ''; filterPanelTags(); }
@@ -1786,8 +1918,9 @@
             const collection = {{ current_collection }};
             const protondbTier = '{{ current_protondb_tier }}';
             const noIgdb = {{ 'true' if current_no_igdb else 'false' }};
-            saveFilterPreferences(currentStores, genres, search, sort, order, excludeStreaming, collection, protondbTier, noIgdb);
-            window.location.href = buildUrl(currentStores, genres, search, sort, order, excludeStreaming, collection, protondbTier, noIgdb);
+            const playtimeLabels = [{% for lbl in current_playtime_labels %}'{{ lbl }}'{% if not loop.last %}, {% endif %}{% endfor %}];
+            saveFilterPreferences(currentStores, genres, search, sort, order, excludeStreaming, collection, protondbTier, noIgdb, playtimeLabels);
+            window.location.href = buildUrl(currentStores, genres, search, sort, order, excludeStreaming, collection, protondbTier, noIgdb, playtimeLabels);
         }
 
         function applySort(value) {
@@ -1799,7 +1932,8 @@
             const collection = {{ current_collection }};
             const protondbTier = '{{ current_protondb_tier }}';
             const noIgdb = {{ 'true' if current_no_igdb else 'false' }};
-            window.location.href = buildUrl(stores, genres, search, sort, order, excludeStreaming, collection, protondbTier, noIgdb);
+            const playtimeLabels = [{% for lbl in current_playtime_labels %}'{{ lbl }}'{% if not loop.last %}, {% endif %}{% endfor %}];
+            window.location.href = buildUrl(stores, genres, search, sort, order, excludeStreaming, collection, protondbTier, noIgdb, playtimeLabels);
         }
 
         // Multi-select functionality
@@ -2190,6 +2324,31 @@
                 const checkbox = card.querySelector('.game-checkbox');
                 toggleGameSelection(event, checkbox);
             }
+        });
+    </script>
+
+    <script src="/static/js/edit_modal.js"></script>
+    <script>
+        // Bulk edit from action bar (multi-select mode)
+        function openBulkEditModal() {
+            if (selectedGames.size === 0) return;
+            const gameIds = Array.from(selectedGames).map(id => parseInt(id));
+            // Mixed selection: don't pre-fill genres
+            openEditModal(gameIds, { _mixed_genres: gameIds.length > 1 });
+        }
+
+        // Per-card pencil button handler
+        function handleCardEditClick(event, btn) {
+            event.preventDefault();
+            event.stopPropagation();
+            const card = btn.closest('.game-card');
+            const gameIds = card.dataset.gameIds.split(',').map(id => parseInt(id));
+            openEditModal(gameIds, {});
+        }
+
+        // After save: reload the page to reflect updated metadata
+        document.addEventListener('editModalSaved', function () {
+            window.location.reload();
         });
     </script>
     {% include '_footer.html' %}

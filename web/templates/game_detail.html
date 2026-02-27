@@ -1216,8 +1216,29 @@
                         {% endfor %}
                     </div>
                     {% set total_playtime = store_info|selectattr('playtime_hours')|map(attribute='playtime_hours')|sum %}
+                    {% if game.playtime_label %}
                     {% if total_playtime %}
-                    <span class="meta-item">{{ total_playtime|round(1) }} hours played</span>
+                    <span class="meta-item" style="color:#888;">{{ total_playtime|round(1) }}h</span>
+                    {% endif %}
+                    <span class="meta-item" style="text-transform:capitalize;color:
+                        {%- if game.playtime_label == 'heavily_played' %}#9c27b0
+                        {%- elif game.playtime_label == 'played' %}#4caf50
+                        {%- elif game.playtime_label == 'tried' %}#2196f3
+                        {%- elif game.playtime_label == 'abandoned' %}#f44336
+                        {%- else %}#888
+                        {%- endif %};">{{ game.playtime_label | replace('_', ' ') | capitalize }}</span>
+                    {% elif total_playtime is defined %}
+                    {% if total_playtime == 0 %}
+                    {% set derived_label = 'Not played' %}{% set derived_color = '#888' %}
+                    {% elif total_playtime <= 2 %}
+                    {% set derived_label = 'Just tried' %}{% set derived_color = '#2196f3' %}
+                    {% elif total_playtime <= 20 %}
+                    {% set derived_label = 'Played' %}{% set derived_color = '#4caf50' %}
+                    {% else %}
+                    {% set derived_label = 'Heavily played' %}{% set derived_color = '#9c27b0' %}
+                    {% endif %}
+                    <span class="meta-item" style="color:#888;" title="{{ total_playtime|round(1) }}h played">{{ total_playtime|round(1) }}h</span>
+                    <span class="meta-item" style="color:{{ derived_color }};" title="Derived from playtime">{{ derived_label }}</span>
                     {% endif %}
                     <button class="add-to-collection-btn" onclick="openCollectionModal()">
                         + Add to Collection
@@ -1238,10 +1259,16 @@
                 </div>
                 {% endif %}
 
-                {% set genres = parse_json(game.genres) %}
+                {% set genres_override = parse_json(game.genres_override) %}
+                {% set genres_raw = parse_json(game.genres) %}
+                {% set genres = genres_override if genres_override else genres_raw %}
                 {% if genres %}
                 <div class="section">
-                    <h2>Genres</h2>
+                    <h2>Genres
+                        {% if genres_override %}
+                        <small style="font-size:0.7rem;font-weight:400;color:#667eea;margin-left:6px;vertical-align:middle;">custom</small>
+                        {% endif %}
+                    </h2>
                     <div class="tags">
                         {% for genre in genres %}
                         <span class="tag">{{ genre }}</span>
@@ -1648,6 +1675,24 @@
                                         Sync with IGDB first to get Steam ID, or search on <a href="https://www.protondb.com/search?q={{ game.name|urlencode }}" target="_blank" rel="noopener">protondb.com</a>.
                                         {% endif %}
                                     </p>
+                                </div>
+                            </div>
+
+                            <div class="settings-section">
+                                <h3>Edit Metadata</h3>
+                                <div class="igdb-settings">
+                                    <p class="igdb-help" style="margin-bottom:12px;">
+                                        Override genres and set a personal playtime label for this game.
+                                    </p>
+                                    <button type="button" class="igdb-btn" onclick="openGameEditModal()" id="edit-metadata-btn">
+                                        Edit Metadata&hellip;
+                                    </button>
+                                    {% if game.genres_override or game.playtime_label %}
+                                    <div style="margin-top:10px;font-size:0.8rem;color:#667eea;">
+                                        {% if game.genres_override %}Custom genres active.{% endif %}
+                                        {% if game.playtime_label %}Label: <strong>{{ game.playtime_label }}</strong>.{% endif %}
+                                    </div>
+                                    {% endif %}
                                 </div>
                             </div>
 
@@ -2382,6 +2427,34 @@
             <div id="collection-status" class="collection-status" style="display: none;"></div>
         </div>
     </div>
+
+    <script src="/static/js/edit_modal.js"></script>
+    <script>
+        function openGameEditModal() {
+            // Parse template data for initial state
+            // game.genres and game.genres_override are JSON arrays stored as strings in the DB
+            const genresOverrideStr = {{ game.genres_override|tojson }};
+            const genresRawStr      = {{ game.genres|tojson }};
+            const playtimeLabel     = {{ game.playtime_label|tojson }};
+            {% set total_pt = store_info|selectattr('playtime_hours')|map(attribute='playtime_hours')|sum %}
+            const playtimeHours     = {{ total_pt or 'null' }};
+
+            openEditModal(
+                [gameId],
+                {
+                    genres_override: genresOverrideStr ? JSON.parse(genresOverrideStr) : null,
+                    genres:          genresRawStr      ? JSON.parse(genresRawStr)      : null,
+                    playtime_label:  playtimeLabel,
+                    playtime_hours:  playtimeHours,
+                }
+            );
+        }
+
+        // After save: reload the page to reflect updated metadata
+        document.addEventListener('editModalSaved', function () {
+            window.location.reload();
+        });
+    </script>
     {% include '_footer.html' %}
 </body>
 </html>

@@ -11,7 +11,7 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 
 from .config import DATABASE_PATH, ENABLE_AUTH, SECRET_KEY
-from .database import ensure_extra_columns, ensure_collections_tables
+from .database import ensure_extra_columns, ensure_collections_tables, ensure_edit_overrides
 from .services.database_builder import create_database
 from .services.igdb_sync import add_igdb_columns
 from .services.jobs import cleanup_orphaned_jobs
@@ -34,6 +34,7 @@ def init_database():
     create_database()
     ensure_extra_columns()
     ensure_collections_tables()
+    ensure_edit_overrides()
 
     conn = sqlite3.connect(DATABASE_PATH)
     add_igdb_columns(conn)

@@ -36,6 +36,7 @@ def library(
     collection: int = 0,
     protondb_tier: str = "",
     no_igdb: bool = False,
+    playtime_label: list[str] = Query(default=[]),
     conn: sqlite3.Connection = Depends(get_db)
 ):
     """Library page - list all games."""
@@ -81,6 +82,37 @@ def library(
     # No IGDB data filter
     if no_igdb:
         query += " AND (igdb_id IS NULL OR igdb_id = 0)"
+
+    # Playtime label filter – supports multiple values; unplayed/tried/played
+    # also match games with no explicit label using playtime_hours ranges.
+    VALID_PLAYTIME_LABELS = {"unplayed", "tried", "played", "heavily_played", "abandoned"}
+    active_labels = [l for l in playtime_label if l in VALID_PLAYTIME_LABELS]
+    if active_labels:
+        label_conditions: list[str] = []
+        for lbl in active_labels:
+            if lbl == "unplayed":
+                label_conditions.append(
+                    "(playtime_label = 'unplayed' OR "
+                    "(playtime_label IS NULL AND (playtime_hours IS NULL OR playtime_hours = 0)))"
+                )
+            elif lbl == "tried":
+                label_conditions.append(
+                    "(playtime_label = 'tried' OR "
+                    "(playtime_label IS NULL AND playtime_hours > 0 AND playtime_hours <= 2))"
+                )
+            elif lbl == "played":
+                label_conditions.append(
+                    "(playtime_label = 'played' OR "
+                    "(playtime_label IS NULL AND playtime_hours > 2 AND playtime_hours <= 20))"
+                )
+            elif lbl == "heavily_played":
+                label_conditions.append(
+                    "(playtime_label = 'heavily_played' OR "
+                    "(playtime_label IS NULL AND playtime_hours > 20))"
+                )
+            else:  # abandoned – explicit label only
+                label_conditions.append(f"playtime_label = '{lbl}'")
+        query += " AND (" + " OR ".join(label_conditions) + ")"
 
     # Sorting - detect which columns actually exist in the DB
     cursor.execute("PRAGMA table_info(games)")
@@ -191,6 +223,7 @@ def library(
             "current_collection": collection,
             "current_protondb_tier": protondb_tier,
             "current_no_igdb": no_igdb,
+            "current_playtime_labels": playtime_label,
             "collections": collections,
             "available_sorts": available_sorts,
             "parse_json": parse_json_field
