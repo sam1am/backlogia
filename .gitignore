@@ -224,3 +224,9 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
+# AI and dev tools
+.claude/CLAUDE.md
+.claude/settings.local.json
+.github/copilot-instructions.md
+.vscode/settings.json
