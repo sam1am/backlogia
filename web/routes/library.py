@@ -12,7 +12,7 @@ from fastapi.templating import Jinja2Templates
 
 from ..dependencies import get_db
 from ..utils.filters import EXCLUDE_HIDDEN_FILTER, EXCLUDE_DUPLICATES_FILTER, PLAYTIME_LABELS
-from ..utils.helpers import parse_json_field, get_store_url, group_games_by_igdb
+from ..utils.helpers import parse_json_field, get_store_url, group_games_by_igdb, escape_like
 
 router = APIRouter()
 templates = Jinja2Templates(directory=Path(__file__).parent.parent / "templates")
@@ -29,7 +29,7 @@ def library(
     request: Request,
     stores: list[str] = Query(default=[]),
     genres: list[str] = Query(default=[]),
-    search: str = "",
+    search: str = Query(default="", max_length=200),
     sort: str = "name",
     order: str = "asc",
     exclude_streaming: bool = False,
@@ -55,13 +55,13 @@ def library(
         # Filter by genres, preferring genres_override if set
         genre_conditions = []
         for genre in genres:
-            genre_conditions.append("LOWER(COALESCE(genres_override, genres)) LIKE ?")
-            params.append(f'%"{genre.lower()}"%')
+            genre_conditions.append("LOWER(COALESCE(genres_override, genres)) LIKE ? ESCAPE '\\'")
+            params.append(f'%"{escape_like(genre.lower())}"%')
         query += " AND (" + " OR ".join(genre_conditions) + ")"
 
     if search:
-        query += " AND name LIKE ?"
-        params.append(f"%{search}%")
+        query += " AND name LIKE ? ESCAPE '\\'"
+        params.append(f"%{escape_like(search)}%")
 
     # Collection filter
     if collection:
@@ -336,7 +336,7 @@ def random_game(conn: sqlite3.Connection = Depends(get_db)):
 @router.get("/hidden", response_class=HTMLResponse)
 def hidden_games(
     request: Request,
-    search: str = "",
+    search: str = Query(default="", max_length=200),
     conn: sqlite3.Connection = Depends(get_db)
 ):
     """Page showing all hidden games."""
@@ -346,8 +346,8 @@ def hidden_games(
     params = []
 
     if search:
-        query += " AND name LIKE ?"
-        params.append(f"%{search}%")
+        query += " AND name LIKE ? ESCAPE '\\'"
+        params.append(f"%{escape_like(search)}%")
 
     query += " ORDER BY name COLLATE NOCASE ASC"
 
@@ -368,7 +368,7 @@ def hidden_games(
 @router.get("/removed", response_class=HTMLResponse)
 def removed_games(
     request: Request,
-    search: str = "",
+    search: str = Query(default="", max_length=200),
     conn: sqlite3.Connection = Depends(get_db)
 ):
     """Page showing all removed games."""
@@ -378,8 +378,8 @@ def removed_games(
     params = []
 
     if search:
-        query += " AND name LIKE ?"
-        params.append(f"%{search}%")
+        query += " AND name LIKE ? ESCAPE '\\'"
+        params.append(f"%{escape_like(search)}%")
 
     query += " ORDER BY name COLLATE NOCASE ASC"
 

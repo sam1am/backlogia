@@ -5,6 +5,26 @@ import json
 from urllib.parse import quote
 
 
+def escape_like(value: str) -> str:
+    """Escape special SQL LIKE wildcard characters in a search string.
+
+    Escapes backslash, percent, and underscore so they are treated as
+    literals rather than LIKE pattern characters.  The query must use
+    ``ESCAPE '\\'`` for the escaping to take effect in SQLite.
+
+    Args:
+        value: The raw user-supplied search string.
+
+    Returns:
+        The string with ``\\``, ``%``, and ``_`` escaped.
+
+    Example:
+        >>> escape_like("100%")
+        '100\\\\%'
+    """
+    return value.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
+
+
 def parse_json_field(value):
     """Safely parse a JSON field."""
     if not value:
