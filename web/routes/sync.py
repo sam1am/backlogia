@@ -15,6 +15,7 @@ from ..config import DATABASE_PATH
 from ..services.jobs import (
     JobType, create_job, update_job_progress, complete_job, fail_job, run_job_async
 )
+from ..services.settings import record_sync_timestamp, get_sync_timestamps
 
 router = APIRouter(tags=["Sync"])
 
@@ -32,6 +33,12 @@ class StoreType(str, Enum):
     ubisoft = "ubisoft"
     local = "local"
     all = "all"
+
+
+@router.get("/api/sync/timestamps")
+def get_sync_timestamps_api():
+    """Get last sync timestamps for all providers."""
+    return {"success": True, "timestamps": get_sync_timestamps()}
 
 
 @router.post("/api/sync/store/{store}")
@@ -90,9 +97,12 @@ def sync_store(store: StoreType):
             message = f"Synced {total} games: " + ", ".join(
                 f"{s.capitalize()}: {c}" for s, c in results.items()
             )
+            for s in results:
+                record_sync_timestamp(s)
         else:
             count = results.get(store.value, 0)
             message = f"Synced {count} games from {store.value.capitalize()}"
+            record_sync_timestamp(store.value)
 
         return {"success": True, "message": message, "results": results}
 
@@ -122,6 +132,7 @@ def sync_igdb(mode: str):
         conn.close()
 
         message = f"IGDB sync complete: {matched} matched, {failed} failed/no match"
+        record_sync_timestamp("igdb")
         return {"success": True, "message": message, "matched": matched, "failed": failed}
 
     except ValueError as e:
@@ -154,6 +165,7 @@ def sync_metacritic(mode: str):
         conn.close()
 
         message = f"Metacritic sync complete: {matched} matched, {failed} failed/no match"
+        record_sync_timestamp("metacritic")
         return {"success": True, "message": message, "matched": matched, "failed": failed}
 
     except Exception as e:
@@ -236,6 +248,11 @@ def sync_store_async(store: StoreType):
                 count = results.get(store.value, 0)
                 message = f"Synced {count} games from {store.value.capitalize()}"
 
+            # Record sync timestamps for completed stores
+            for s in results:
+                if isinstance(results[s], int):
+                    record_sync_timestamp(s)
+
             complete_job(job_id, json.dumps(results), message)
 
         except Exception as e:
@@ -276,6 +293,7 @@ def sync_igdb_async(mode: str):
             conn.close()
 
             message = f"IGDB sync complete: {matched} matched, {failed} failed/no match"
+            record_sync_timestamp("igdb")
             complete_job(job_id, json.dumps({"matched": matched, "failed": failed}), message)
 
         except Exception as e:
@@ -318,6 +336,7 @@ def sync_metacritic_async(mode: str):
             conn.close()
 
             message = f"Metacritic sync complete: {matched} matched, {failed} failed/no match"
+            record_sync_timestamp("metacritic")
             complete_job(job_id, json.dumps({"matched": matched, "failed": failed}), message)
 
         except Exception as e:
@@ -351,6 +370,7 @@ def sync_protondb(mode: str):
         conn.close()
 
         message = f"ProtonDB sync complete: {matched} matched, {failed} failed/no data"
+        record_sync_timestamp("protondb")
         return {"success": True, "message": message, "matched": matched, "failed": failed}
 
     except Exception as e:
@@ -389,6 +409,7 @@ def sync_protondb_async(mode: str):
             conn.close()
 
             message = f"ProtonDB sync complete: {matched} matched, {failed} failed/no data"
+            record_sync_timestamp("protondb")
             complete_job(job_id, json.dumps({"matched": matched, "failed": failed}), message)
 
         except Exception as e:
@@ -478,6 +499,7 @@ def import_ubisoft_games(request: UbisoftImportRequest):
         conn.commit()
         conn.close()
 
+        record_sync_timestamp("ubisoft")
         return {
             "success": True,
             "message": f"Imported {count} Ubisoft games",
@@ -530,6 +552,7 @@ def import_gog_games(request: GOGImportRequest):
         conn.commit()
         conn.close()
 
+        record_sync_timestamp("gog")
         return {
             "success": True,
             "message": f"Imported {count} GOG games",
