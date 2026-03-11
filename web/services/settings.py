@@ -195,3 +195,31 @@ def get_local_games_settings():
     return {
         "paths": get_setting(LOCAL_GAMES_PATHS),
     }
+
+
+# Sync timestamp helpers
+SYNC_TIMESTAMP_PREFIX = "last_sync_"
+
+def record_sync_timestamp(provider: str):
+    """Record the current time as the last sync time for a provider."""
+    set_setting(f"{SYNC_TIMESTAMP_PREFIX}{provider}", datetime.now().isoformat())
+
+
+def get_sync_timestamps():
+    """Get all last sync timestamps as a dict of provider -> ISO timestamp."""
+    timestamps = {}
+    try:
+        conn = sqlite3.connect(DATABASE_PATH)
+        _ensure_settings_table(conn)
+        cursor = conn.cursor()
+        cursor.execute(
+            "SELECT key, value FROM settings WHERE key LIKE ?",
+            (f"{SYNC_TIMESTAMP_PREFIX}%",)
+        )
+        for key, value in cursor.fetchall():
+            provider = key[len(SYNC_TIMESTAMP_PREFIX):]
+            timestamps[provider] = value
+        conn.close()
+    except Exception:
+        pass
+    return timestamps

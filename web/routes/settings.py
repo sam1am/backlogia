@@ -28,7 +28,7 @@ def settings_page(
         get_setting, STEAM_ID, STEAM_API_KEY, IGDB_CLIENT_ID, IGDB_CLIENT_SECRET,
         ITCH_API_KEY, HUMBLE_SESSION_COOKIE, BATTLENET_SESSION_COOKIE, GOG_DB_PATH,
         EA_BEARER_TOKEN, IGDB_MATCH_THRESHOLD, LOCAL_GAMES_PATHS, XBOX_XSTS_TOKEN,
-        XBOX_GAMEPASS_MARKET, XBOX_GAMEPASS_PLAN
+        XBOX_GAMEPASS_MARKET, XBOX_GAMEPASS_PLAN, get_sync_timestamps
     )
     from ..sources.local import discover_local_game_paths
 
@@ -75,6 +75,9 @@ def settings_page(
     cursor.execute("SELECT COUNT(*) FROM games WHERE hidden = 1")
     hidden_count = cursor.fetchone()[0]
 
+    # Get sync timestamps
+    sync_timestamps = get_sync_timestamps()
+
     return templates.TemplateResponse(
         "settings.html",
         {
@@ -83,7 +86,8 @@ def settings_page(
             "success": success_flag,
             "hidden_count": hidden_count,
             "is_docker": is_docker,
-            "auth_enabled": ENABLE_AUTH
+            "auth_enabled": ENABLE_AUTH,
+            "sync_timestamps": sync_timestamps
         }
     )
 

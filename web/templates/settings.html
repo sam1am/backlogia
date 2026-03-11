@@ -626,6 +626,12 @@
             margin-top: 2px;
         }
 
+        .sync-btn .text .last-sync {
+            font-size: 0.7rem;
+            color: #666;
+            margin-top: 1px;
+        }
+
         .sync-section {
             margin-bottom: 20px;
         }
@@ -966,6 +972,15 @@
                 </div>
             </div>
 
+            <div class="form-group">
+                <label>Score Display</label>
+                <div class="size-options">
+                    <button class="size-btn score-btn" data-score="igdb" onclick="setScoreDisplay('igdb')">IGDB</button>
+                    <button class="size-btn score-btn" data-score="metacritic" onclick="setScoreDisplay('metacritic')">Metacritic</button>
+                    <button class="size-btn score-btn" data-score="none" onclick="setScoreDisplay('none')">None</button>
+                </div>
+            </div>
+
             {% if hidden_count %}
             <div class="form-group" style="margin-top: 20px;">
                 <label>Hidden Games</label>
@@ -989,74 +1004,84 @@
             <div class="sync-section">
                 <div class="sync-section-title">Sync Games from Stores</div>
                 <div class="sync-grid">
-                    <button class="sync-btn" onclick="syncStore('steam')">
+                    <button class="sync-btn" onclick="syncStore('steam')" data-provider="steam">
                         <div class="icon"><img src="/static/images/steam-100.png" alt="Steam"></div>
                         <div class="text">
                             <span>Sync Steam</span>
                             <small>Import from Steam library</small>
+                            <small class="last-sync" data-sync="steam"></small>
                         </div>
                     </button>
-                    <button class="sync-btn" onclick="syncStore('epic')">
+                    <button class="sync-btn" onclick="syncStore('epic')" data-provider="epic">
                         <div class="icon"><img src="/static/images/epic-100.png" alt="Epic"></div>
                         <div class="text">
                             <span>Sync Epic</span>
                             <small>Import from Epic Games</small>
+                            <small class="last-sync" data-sync="epic"></small>
                         </div>
                     </button>
-                    <button class="sync-btn" onclick="syncStore('gog')">
+                    <button class="sync-btn" onclick="syncStore('gog')" data-provider="gog">
                         <div class="icon"><img src="/static/images/gog-48.png" alt="GOG"></div>
                         <div class="text">
                             <span>Sync GOG</span>
                             <small>Import from GOG Galaxy</small>
+                            <small class="last-sync" data-sync="gog"></small>
                         </div>
                     </button>
-                    <button class="sync-btn" onclick="syncStore('itch')">
+                    <button class="sync-btn" onclick="syncStore('itch')" data-provider="itch">
                         <div class="icon"><img src="/static/images/itch-90.png" alt="itch.io"></div>
                         <div class="text">
                             <span>Sync itch.io</span>
                             <small>Import from itch.io</small>
+                            <small class="last-sync" data-sync="itch"></small>
                         </div>
                     </button>
-                    <button class="sync-btn" onclick="syncStore('humble')">
+                    <button class="sync-btn" onclick="syncStore('humble')" data-provider="humble">
                         <div class="icon"><img src="/static/images/humble-96.png" alt="Humble"></div>
                         <div class="text">
                             <span>Sync Humble</span>
                             <small>Import from Humble Bundle</small>
+                            <small class="last-sync" data-sync="humble"></small>
                         </div>
                     </button>
-                    <button class="sync-btn" onclick="syncStore('battlenet')">
+                    <button class="sync-btn" onclick="syncStore('battlenet')" data-provider="battlenet">
                         <div class="icon"><img src="/static/images/battlenet-100.png" alt="Battle.net"></div>
                         <div class="text">
                             <span>Sync Battle.net</span>
                             <small>Import from Battle.net</small>
+                            <small class="last-sync" data-sync="battlenet"></small>
                         </div>
                     </button>
-                    <button class="sync-btn" onclick="syncStore('amazon')">
+                    <button class="sync-btn" onclick="syncStore('amazon')" data-provider="amazon">
                         <div class="icon"><img src="/static/images/amazon-120.png" alt="Amazon"></div>
                         <div class="text">
                             <span>Sync Amazon</span>
                             <small>Import from Amazon Games</small>
+                            <small class="last-sync" data-sync="amazon"></small>
                         </div>
                     </button>
-                    <button class="sync-btn" onclick="syncStore('ea')">
+                    <button class="sync-btn" onclick="syncStore('ea')" data-provider="ea">
                         <div class="icon"><img src="/static/images/ea-256.png" alt="EA"></div>
                         <div class="text">
                             <span>Sync EA</span>
                             <small>Import from EA App</small>
+                            <small class="last-sync" data-sync="ea"></small>
                         </div>
                     </button>
-                    <button class="sync-btn" onclick="syncStore('xbox')">
+                    <button class="sync-btn" onclick="syncStore('xbox')" data-provider="xbox">
                         <div class="icon"><img src="/static/images/xbox-100.png" alt="Xbox"></div>
                         <div class="text">
                             <span>Sync Xbox</span>
                             <small>Import from Xbox/Game Pass</small>
+                            <small class="last-sync" data-sync="xbox"></small>
                         </div>
                     </button>
-                    <button class="sync-btn" onclick="syncStore('local')">
+                    <button class="sync-btn" onclick="syncStore('local')" data-provider="local">
                         <div class="icon"><img src="/static/images/local-96.png" alt="Local"></div>
                         <div class="text">
                             <span>Sync Local</span>
                             <small>Import from local folders</small>
+                            <small class="last-sync" data-sync="local"></small>
                         </div>
                     </button>
                 </div>
@@ -1078,14 +1103,15 @@
             <div class="sync-section">
                 <div class="sync-section-title">IGDB Metadata</div>
                 <div class="sync-grid">
-                    <button class="sync-btn" onclick="syncIgdb('missing')">
+                    <button class="sync-btn" onclick="syncIgdb('missing')" data-provider="igdb">
                         <div class="icon igdb">I</div>
                         <div class="text">
                             <span>Sync Missing Metadata</span>
                             <small>Fetch IGDB data for unmatched games</small>
+                            <small class="last-sync" data-sync="igdb"></small>
                         </div>
                     </button>
-                    <button class="sync-btn" onclick="syncIgdb('all')">
+                    <button class="sync-btn" onclick="syncIgdb('all')" data-provider="igdb">
                         <div class="icon igdb">I</div>
                         <div class="text">
                             <span>Resync All Metadata</span>
@@ -1098,14 +1124,15 @@
             <div class="sync-section">
                 <div class="sync-section-title">Metacritic Scores</div>
                 <div class="sync-grid">
-                    <button class="sync-btn" onclick="syncMetacritic('missing')">
+                    <button class="sync-btn" onclick="syncMetacritic('missing')" data-provider="metacritic">
                         <div class="icon metacritic">M</div>
                         <div class="text">
                             <span>Sync Missing Scores</span>
                             <small>Fetch scores for unmatched games</small>
+                            <small class="last-sync" data-sync="metacritic"></small>
                         </div>
                     </button>
-                    <button class="sync-btn" onclick="syncMetacritic('all')">
+                    <button class="sync-btn" onclick="syncMetacritic('all')" data-provider="metacritic">
                         <div class="icon metacritic">M</div>
                         <div class="text">
                             <span>Resync All Scores</span>
@@ -1118,14 +1145,15 @@
             <div class="sync-section">
                 <div class="sync-section-title">ProtonDB Compatibility (Linux/Steam Deck)</div>
                 <div class="sync-grid">
-                    <button class="sync-btn" onclick="syncProtondb('missing')">
+                    <button class="sync-btn" onclick="syncProtondb('missing')" data-provider="protondb">
                         <div class="icon protondb">P</div>
                         <div class="text">
                             <span>Sync Missing Data</span>
                             <small>Fetch compatibility for games with Steam IDs</small>
+                            <small class="last-sync" data-sync="protondb"></small>
                         </div>
                     </button>
-                    <button class="sync-btn" onclick="syncProtondb('all')">
+                    <button class="sync-btn" onclick="syncProtondb('all')" data-provider="protondb">
                         <div class="icon protondb">P</div>
                         <div class="text">
                             <span>Resync All</span>
@@ -1707,6 +1735,48 @@ LOCAL_GAMES_DIR_2=/another/path/to/games</pre>
     </div>
 
     <script>
+        // Time ago helper
+        function timeAgo(isoString) {
+            const date = new Date(isoString);
+            const now = new Date();
+            const seconds = Math.floor((now - date) / 1000);
+            if (seconds < 60) return 'just now';
+            const minutes = Math.floor(seconds / 60);
+            if (minutes < 60) return minutes === 1 ? '1 minute ago' : `${minutes} minutes ago`;
+            const hours = Math.floor(minutes / 60);
+            if (hours < 24) return hours === 1 ? '1 hour ago' : `${hours} hours ago`;
+            const days = Math.floor(hours / 24);
+            if (days < 30) return days === 1 ? '1 day ago' : `${days} days ago`;
+            const months = Math.floor(days / 30);
+            return months === 1 ? '1 month ago' : `${months} months ago`;
+        }
+
+        // Sync timestamps from server
+        const syncTimestamps = {{ sync_timestamps | tojson }};
+
+        function updateSyncTimestamps(timestamps) {
+            document.querySelectorAll('.last-sync[data-sync]').forEach(el => {
+                const provider = el.dataset.sync;
+                if (timestamps[provider]) {
+                    el.textContent = 'Last synced ' + timeAgo(timestamps[provider]);
+                } else {
+                    el.textContent = 'Never synced';
+                }
+            });
+        }
+
+        function refreshSyncTimestamps() {
+            fetch('/api/sync/timestamps')
+                .then(r => r.json())
+                .then(data => {
+                    if (data.success) updateSyncTimestamps(data.timestamps);
+                })
+                .catch(() => {});
+        }
+
+        // Initialize on page load
+        updateSyncTimestamps(syncTimestamps);
+
         // Box Art Size
         function setGridSize(size) {
             document.querySelectorAll('.size-btn').forEach(btn => {
@@ -1718,10 +1788,24 @@ LOCAL_GAMES_DIR_2=/another/path/to/games</pre>
             localStorage.setItem('gridSize', size);
         }
 
-        // Load saved preference on page load
+        // Score Display
+        function setScoreDisplay(type) {
+            document.querySelectorAll('.score-btn').forEach(btn => {
+                btn.classList.remove('active');
+                if (btn.dataset.score === type) {
+                    btn.classList.add('active');
+                }
+            });
+            localStorage.setItem('scoreDisplay', type);
+        }
+
+        // Load saved preferences on page load
         document.addEventListener('DOMContentLoaded', function() {
             const savedSize = localStorage.getItem('gridSize') || 'medium';
             setGridSize(savedSize);
+
+            const savedScore = localStorage.getItem('scoreDisplay') || 'igdb';
+            setScoreDisplay(savedScore);
         });
 
         // Status Message
@@ -1829,6 +1913,7 @@ LOCAL_GAMES_DIR_2=/another/path/to/games</pre>
                 spinner.style.display = 'none';
                 title.textContent = 'Sync Complete';
                 if (notice) notice.style.display = 'none';
+                refreshSyncTimestamps();
             }
         }
 
