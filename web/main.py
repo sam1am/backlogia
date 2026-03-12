@@ -65,7 +65,9 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Conditionally add auth middleware (after CORS so CORS is the outer layer)
+# Conditionally add auth middleware (added after CORS; in Starlette the last-added
+# middleware is outermost, so auth runs first — OPTIONS requests are passed through
+# to allow CORS preflight to work)
 if ENABLE_AUTH:
     from .middleware import AuthMiddleware
     from .services.auth_service import get_or_create_secret_key, cleanup_expired_sessions
