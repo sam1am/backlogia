@@ -3,8 +3,9 @@
 // It can be updated on the server without requiring users to reinstall the bookmarklet
 
 (function() {
-    // Get the URL from the loader (set when bookmarklet was installed)
+    // Get the URL and import token from the loader (set when bookmarklet was installed)
     var LOCAL_URL = window.__BACKLOGIA_URL__ || 'http://localhost:5050';
+    var IMPORT_TOKEN = window.__BACKLOGIA_TOKEN__ || '';
     var host = location.hostname;
 
     // Helper function to create styled overlay
@@ -170,10 +171,12 @@
             content.textContent = 'Found ' + uniqueGames.length + ' games. Sending to Backlogia...';
 
             try {
+                var payload = { games: uniqueGames };
+                if (IMPORT_TOKEN) payload.token = IMPORT_TOKEN;
                 var response = await fetch(LOCAL_URL + '/api/import/ubisoft', {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ games: uniqueGames })
+                    headers: { 'Content-Type': 'text/plain' },
+                    body: JSON.stringify(payload)
                 });
                 var data = await response.json();
 
@@ -349,10 +352,12 @@
             content.textContent = 'Found ' + uniqueGames.length + ' games. Sending to Backlogia...';
 
             try {
+                var gogPayload = { games: uniqueGames };
+                if (IMPORT_TOKEN) gogPayload.token = IMPORT_TOKEN;
                 var response = await fetch(LOCAL_URL + '/api/import/gog', {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ games: uniqueGames })
+                    headers: { 'Content-Type': 'text/plain' },
+                    body: JSON.stringify(gogPayload)
                 });
                 var data = await response.json();
 

@@ -146,6 +146,27 @@ def cleanup_expired_sessions():
     conn.close()
 
 
+def generate_import_token(secret_key):
+    """Generate a stable import token for bookmarklet auth.
+
+    This is a signed token derived from the secret key, used to authenticate
+    bookmarklet import requests without cookies (which don't work cross-origin).
+    """
+    from itsdangerous import URLSafeSerializer
+    signer = URLSafeSerializer(secret_key, salt="backlogia-import")
+    return signer.dumps("import-authorized")
+
+
+def validate_import_token(secret_key, token):
+    """Validate an import token. Returns True if valid."""
+    from itsdangerous import URLSafeSerializer, BadSignature
+    signer = URLSafeSerializer(secret_key, salt="backlogia-import")
+    try:
+        return signer.loads(token) == "import-authorized"
+    except BadSignature:
+        return False
+
+
 def get_or_create_secret_key():
     """Get or generate a persistent secret key stored in the settings table."""
     from .settings import get_setting, set_setting, _ensure_settings_table

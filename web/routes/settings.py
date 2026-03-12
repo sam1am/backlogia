@@ -9,7 +9,7 @@ from fastapi import APIRouter, Depends, Form, Request
 from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 
-from ..config import ENABLE_AUTH
+from ..config import ENABLE_AUTH, SECRET_KEY
 from ..dependencies import get_db
 
 router = APIRouter()
@@ -78,6 +78,13 @@ def settings_page(
     # Get sync timestamps
     sync_timestamps = get_sync_timestamps()
 
+    # Generate import token for bookmarklet (only when auth is enabled)
+    import_token = ""
+    if ENABLE_AUTH:
+        from ..services.auth_service import generate_import_token, get_or_create_secret_key
+        secret = SECRET_KEY or get_or_create_secret_key()
+        import_token = generate_import_token(secret)
+
     return templates.TemplateResponse(
         "settings.html",
         {
@@ -87,7 +94,8 @@ def settings_page(
             "hidden_count": hidden_count,
             "is_docker": is_docker,
             "auth_enabled": ENABLE_AUTH,
-            "sync_timestamps": sync_timestamps
+            "sync_timestamps": sync_timestamps,
+            "import_token": import_token
         }
     )
 

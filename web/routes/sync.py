@@ -8,14 +8,25 @@ from datetime import datetime
 from enum import Enum
 from typing import List, Optional
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Request
 from pydantic import BaseModel
 
-from ..config import DATABASE_PATH
+from ..config import DATABASE_PATH, ENABLE_AUTH, SECRET_KEY
 from ..services.jobs import (
     JobType, create_job, update_job_progress, complete_job, fail_job, run_job_async
 )
 from ..services.settings import record_sync_timestamp, get_sync_timestamps
+
+
+def _validate_import_token(data: dict):
+    """Validate import token if auth is enabled. Raises HTTPException if invalid."""
+    if not ENABLE_AUTH:
+        return
+    from ..services.auth_service import get_or_create_secret_key, validate_import_token
+    secret = SECRET_KEY or get_or_create_secret_key()
+    token = data.get("token")
+    if not token or not validate_import_token(secret, token):
+        raise HTTPException(status_code=401, detail="Invalid or missing import token")
 
 router = APIRouter(tags=["Sync"])
 
@@ -443,9 +454,19 @@ class GOGImportRequest(BaseModel):
 
 
 @router.post("/api/import/ubisoft")
-def import_ubisoft_games(request: UbisoftImportRequest):
+async def import_ubisoft_games(request: Request):
     """Import games scraped from Ubisoft account page."""
     from ..services.database_builder import create_database
+
+    try:
+        body = await request.body()
+        raw = json.loads(body)
+        _validate_import_token(raw)
+        parsed = UbisoftImportRequest(**raw)
+    except HTTPException:
+        raise
+    except Exception:
+        raise HTTPException(status_code=400, detail="Invalid request body")
 
     try:
         # Ensure database exists
@@ -454,7 +475,7 @@ def import_ubisoft_games(request: UbisoftImportRequest):
         cursor = conn.cursor()
 
         count = 0
-        for game in request.games:
+        for game in parsed.games:
             try:
                 # Parse playtime string (e.g. "10 hours", "2 hours 30 minutes")
                 playtime_hours = None
@@ -511,9 +532,19 @@ def import_ubisoft_games(request: UbisoftImportRequest):
 
 
 @router.post("/api/import/gog")
-def import_gog_games(request: GOGImportRequest):
+async def import_gog_games(request: Request):
     """Import games scraped from GOG library page."""
     from ..services.database_builder import create_database
+
+    try:
+        body = await request.body()
+        raw = json.loads(body)
+        _validate_import_token(raw)
+        parsed = GOGImportRequest(**raw)
+    except HTTPException:
+        raise
+    except Exception:
+        raise HTTPException(status_code=400, detail="Invalid request body")
 
     try:
         # Ensure database exists
@@ -522,7 +553,7 @@ def import_gog_games(request: GOGImportRequest):
         cursor = conn.cursor()
 
         count = 0
-        for game in request.games:
+        for game in parsed.games:
             try:
                 # Store extra data
                 extra_data = {
