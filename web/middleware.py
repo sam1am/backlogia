@@ -22,7 +22,11 @@ class AuthMiddleware(BaseHTTPMiddleware):
     async def dispatch(self, request, call_next):
         path = request.url.path
 
-        # Always allow public paths
+        # Always allow CORS preflight requests and public paths
+        if request.method == "OPTIONS":
+            response = await call_next(request)
+            return response
+
         if path in PUBLIC_PATHS or path.startswith(PUBLIC_PREFIXES) or path == "/sw.js":
             response = await call_next(request)
             return response
