@@ -6,7 +6,7 @@ from pathlib import Path
 from fastapi import APIRouter, Form, Request
 from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
-from itsdangerous import URLSafeSerializer
+from itsdangerous import BadSignature, SignatureExpired, URLSafeSerializer, URLSafeTimedSerializer
 
 from ..config import ENABLE_AUTH, SECRET_KEY
 from ..services.auth_service import (
@@ -26,6 +26,26 @@ def _get_signer():
     """Get the URL-safe signer using the configured secret key."""
     actual_secret = SECRET_KEY or get_or_create_secret_key()
     return URLSafeSerializer(actual_secret, salt="backlogia-session")
+
+
+def _generate_csrf_token() -> str:
+    """Generate a signed, time-limited CSRF token (expires in 1 hour)."""
+    actual_secret = SECRET_KEY or get_or_create_secret_key()
+    s = URLSafeTimedSerializer(actual_secret, salt="backlogia-csrf")
+    return s.dumps("csrf")
+
+
+def _validate_csrf_token(token: str) -> bool:
+    """Validate a CSRF token. Returns False if missing, expired, or tampered."""
+    if not token:
+        return False
+    try:
+        actual_secret = SECRET_KEY or get_or_create_secret_key()
+        s = URLSafeTimedSerializer(actual_secret, salt="backlogia-csrf")
+        s.loads(token, max_age=3600)
+        return True
+    except (BadSignature, SignatureExpired):
+        return False
 
 
 def _set_session_cookie(response, session_id):
@@ -52,8 +72,9 @@ def login_page(request: Request, next: str = "/"):
         return RedirectResponse(url="/setup", status_code=303)
 
     return templates.TemplateResponse(
+        request,
         "login.html",
-        {"request": request, "next": next, "error": ""},
+        {"next": next, "error": "", "csrf_token": _generate_csrf_token()},
     )
 
 
@@ -63,13 +84,23 @@ def auth_login(
     username: str = Form(...),
     password: str = Form(...),
     next: str = Form(default="/"),
+    csrf_token: str = Form(default=""),
 ):
     """Handle login form submission."""
+    if not _validate_csrf_token(csrf_token):
+        return templates.TemplateResponse(
+            request,
+            "login.html",
+            {"next": next, "error": "Invalid or expired form token. Please try again.", "csrf_token": _generate_csrf_token()},
+            status_code=403,
+        )
+
     user = verify_user(username, password)
     if user is None:
         return templates.TemplateResponse(
+            request,
             "login.html",
-            {"request": request, "next": next, "error": "Invalid username or password"},
+            {"next": next, "error": "Invalid username or password", "csrf_token": _generate_csrf_token()},
             status_code=401,
         )
 
@@ -90,8 +121,9 @@ def setup_page(request: Request):
         return RedirectResponse(url="/login", status_code=303)
 
     return templates.TemplateResponse(
+        request,
         "setup.html",
-        {"request": request, "error": ""},
+        {"error": "", "csrf_token": _generate_csrf_token()},
     )
 
 
@@ -101,10 +133,19 @@ def auth_setup(
     username: str = Form(...),
     password: str = Form(...),
     confirm_password: str = Form(...),
+    csrf_token: str = Form(default=""),
 ):
     """Handle account creation form submission."""
     if user_exists():
         return RedirectResponse(url="/login", status_code=303)
+
+    if not _validate_csrf_token(csrf_token):
+        return templates.TemplateResponse(
+            request,
+            "setup.html",
+            {"error": "Invalid or expired form token. Please try again.", "csrf_token": _generate_csrf_token()},
+            status_code=403,
+        )
 
     # Validation
     error = None
@@ -117,8 +158,9 @@ def auth_setup(
 
     if error:
         return templates.TemplateResponse(
+            request,
             "setup.html",
-            {"request": request, "error": error},
+            {"error": error, "csrf_token": _generate_csrf_token()},
             status_code=400,
         )
 
