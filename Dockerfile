@@ -30,7 +30,7 @@ COPY web/ ./web/
 # so host volume mounts can be chowned to match without inspecting the image first
 RUN mkdir -p /data \
     && groupadd -g 1000 appuser \
-    && useradd -u 1000 -g appuser -s /bin/sh appuser \
+    && useradd -u 1000 -g appuser -m -s /bin/sh appuser \
     && chown -R appuser:appuser /app /data
 
 USER appuser
