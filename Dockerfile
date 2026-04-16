@@ -26,8 +26,14 @@ RUN pip install --no-cache-dir pycryptodome zstandard requests protobuf json5 \
 # Copy application code
 COPY web/ ./web/
 
-# Create data directory for the database
-RUN mkdir -p /data
+# Create data directory and non-root user with a fixed UID/GID (1000)
+# so host volume mounts can be chowned to match without inspecting the image first
+RUN mkdir -p /data \
+    && groupadd -g 1000 appuser \
+    && useradd -u 1000 -g appuser -s /bin/sh appuser \
+    && chown -R appuser:appuser /app /data
+
+USER appuser
 
 # Set environment variables
 ENV PYTHONUNBUFFERED=1
