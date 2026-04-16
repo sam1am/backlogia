@@ -173,6 +173,7 @@
                 var response = await fetch(LOCAL_URL + '/api/import/ubisoft', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
+                    credentials: 'include',
                     body: JSON.stringify({ games: uniqueGames })
                 });
                 var data = await response.json();
@@ -352,6 +353,7 @@
                 var response = await fetch(LOCAL_URL + '/api/import/gog', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
+                    credentials: 'include',
                     body: JSON.stringify({ games: uniqueGames })
                 });
                 var data = await response.json();

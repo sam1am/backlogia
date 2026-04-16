@@ -51,7 +51,19 @@ app = FastAPI(
     version="1.0.0",
 )
 
-# Add CORS middleware to allow bookmarklet requests from external sites
+# Middleware order: add_middleware is last-in/outermost in Starlette.
+# Auth must be added first (innermost) so CORS (added last/outermost) always
+# adds Access-Control-Allow-Origin headers — even to 401 responses from auth.
+# Without this, bookmarklet fetch() calls get a CORS error instead of a 401.
+if ENABLE_AUTH:
+    from .middleware import AuthMiddleware
+    from .services.auth_service import get_or_create_secret_key, cleanup_expired_sessions
+
+    actual_secret = SECRET_KEY or get_or_create_secret_key()
+    app.add_middleware(AuthMiddleware, secret_key=actual_secret)
+    cleanup_expired_sessions()
+
+# CORS must be outermost — added last so it wraps everything including auth.
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
@@ -65,15 +77,6 @@ app.add_middleware(
     allow_methods=["GET", "POST", "OPTIONS"],
     allow_headers=["*"],
 )
-
-# Conditionally add auth middleware (after CORS so CORS is the outer layer)
-if ENABLE_AUTH:
-    from .middleware import AuthMiddleware
-    from .services.auth_service import get_or_create_secret_key, cleanup_expired_sessions
-
-    actual_secret = SECRET_KEY or get_or_create_secret_key()
-    app.add_middleware(AuthMiddleware, secret_key=actual_secret)
-    cleanup_expired_sessions()
 
 # Initialize database on startup
 init_database()
