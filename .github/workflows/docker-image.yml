@@ -1,0 +1,18 @@
+name: Docker Image CI
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+jobs:
+
+  build:
+
+    runs-on: python:3.11-slim
+
+    steps:
+    - uses: actions/checkout@v4
+    - name: Build the Docker image
+      run: docker build . --file Dockerfile --tag backlogia:$(date +%s)
