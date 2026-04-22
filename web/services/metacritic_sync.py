@@ -7,22 +7,45 @@ import time
 import re
 import threading
 from concurrent.futures import ThreadPoolExecutor, as_completed
-from bs4 import BeautifulSoup
-from urllib.parse import quote
+
+
+# Metacritic's internal backend API key (public, embedded in their frontend bundle).
+# If requests start failing with 401/403 the key has rotated; _discover_api_key() will
+# re-scrape it from the homepage automatically.
+_MC_API_KEY = "1MOZgmNFxvmljaQR1X9KAij9Mo4xAY3u"
+_MC_BACKEND = "https://backend.metacritic.com"
+_api_key_lock = threading.Lock()
+
+
+def _discover_api_key():
+    """Re-fetch the API key from Metacritic's homepage and update the module-level cache."""
+    global _MC_API_KEY
+    try:
+        r = requests.get(
+            "https://www.metacritic.com",
+            headers={"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"},
+            timeout=15,
+        )
+        m = re.search(r"apiKey=([A-Za-z0-9]{20,})", r.text)
+        if m:
+            with _api_key_lock:
+                _MC_API_KEY = m.group(1)
+            print(f"[metacritic] refreshed API key: {_MC_API_KEY[:8]}...")
+    except Exception as e:
+        print(f"[metacritic] could not refresh API key: {e}")
 
 
 class MetacriticClient:
-    """Client for fetching game data from Metacritic."""
+    """Client for fetching game data from Metacritic's backend JSON API."""
 
     BASE_URL = "https://www.metacritic.com"
-    SEARCH_URL = "https://www.metacritic.com/search"
 
     def __init__(self, min_request_interval=0.5):
         self.session = requests.Session()
         self.session.headers.update({
-            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
-            "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8",
-            "Accept-Language": "en-US,en;q=0.5",
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
+            "Accept": "application/json",
+            "Referer": "https://www.metacritic.com",
         })
         self.last_request_time = 0
         self.min_request_interval = min_request_interval
@@ -36,161 +59,117 @@ class MetacriticClient:
                 time.sleep(self.min_request_interval - elapsed)
             self.last_request_time = time.time()
 
-    def _make_request(self, url):
-        """Make a rate-limited request."""
+    def _get(self, url):
+        """Make a rate-limited GET request, returning parsed JSON or None.
+
+        On 401/403 (key rotated), auto-discovers the new key and retries once.
+        """
         self._rate_limit()
         try:
             response = self.session.get(url, timeout=15)
+            if response.status_code in (401, 403):
+                print("[metacritic] API key rejected, attempting to refresh...")
+                _discover_api_key()
+                # Rebuild URL with new key (replace the old key value)
+                url = re.sub(r"apiKey=[A-Za-z0-9]+", f"apiKey={_MC_API_KEY}", url)
+                self._rate_limit()
+                response = self.session.get(url, timeout=15)
+            if response.status_code == 404:
+                return None
             response.raise_for_status()
-            return response
+            return response.json()
         except requests.RequestException as e:
             print(f"Request error: {e}")
             return None
 
     def search_game(self, name):
         """
-        Search Metacritic for a game by name.
+        Search Metacritic for a game by name using the backend JSON API.
 
-        Returns a list of results with: name, slug, platform, url
+        Returns a list of results with: name, slug, url, score
         """
-        # Clean the search query
         clean_name = self._clean_game_name(name)
-        search_url = f"{self.SEARCH_URL}/{quote(clean_name)}/?page=1&category=13"  # category 13 = games
+        url = (
+            f"{_MC_BACKEND}/finder/metacritic/search/{requests.utils.quote(clean_name)}/web"
+            f"?apiKey={_MC_API_KEY}&mcoTypeId=13&limit=10&page=1"
+        )
 
-        response = self._make_request(search_url)
-        if not response:
+        data = self._get(url)
+        if not data:
             return []
 
-        soup = BeautifulSoup(response.text, "html.parser")
+        items = data.get("data", {}).get("items", [])
         results = []
-
-        # Find search result items
-        # Metacritic uses different selectors over time, try multiple patterns
-        result_cards = soup.select('a[class*="c-pageSiteSearch-results-item"]')
-
-        if not result_cards:
-            # Try alternative selector
-            result_cards = soup.select('div.c-pageSiteSearch-results a[href*="/game/"]')
-
-        for card in result_cards[:5]:  # Limit to top 5 results
-            try:
-                href = card.get("href", "")
-                if "/game/" not in href:
-                    continue
-
-                # Extract slug from URL (e.g., /game/game-name/ -> game-name)
-                slug_match = re.search(r"/game/([^/]+)", href)
-                if not slug_match:
-                    continue
-
-                slug = slug_match.group(1)
-
-                # Get game name from the card
-                title_el = card.select_one('p[class*="title"], h3, span[class*="title"]')
-                game_name = title_el.get_text(strip=True) if title_el else slug.replace("-", " ").title()
-
-                # Get score if available
-                score_el = card.select_one('span[class*="metascore"], div[class*="metascore"]')
-                score = None
-                if score_el:
-                    score_text = score_el.get_text(strip=True)
-                    if score_text.isdigit():
-                        score = int(score_text)
-
-                results.append({
-                    "name": game_name,
-                    "slug": slug,
-                    "url": f"{self.BASE_URL}/game/{slug}/",
-                    "score": score,
-                })
-            except Exception as e:
-                print(f"Error parsing search result: {e}")
+        for item in items:
+            if item.get("type") != "game-title":
                 continue
+            slug = item.get("slug")
+            title = item.get("title")
+            if not slug or not title:
+                continue
+            critic_score = None
+            score_summary = item.get("criticScoreSummary") or {}
+            raw_score = score_summary.get("score")
+            if isinstance(raw_score, (int, float)) and raw_score > 0:
+                critic_score = int(raw_score)
+            results.append({
+                "name": title,
+                "slug": slug,
+                "url": f"{self.BASE_URL}/game/{slug}/",
+                "score": critic_score,
+            })
 
         return results
 
     def get_game_by_slug(self, slug):
         """
-        Get game details by Metacritic slug.
+        Get game details by Metacritic slug using the backend JSON API.
 
         Returns dict with: name, slug, url, critic_score, user_score
         """
-        # Clean the slug
         slug = slug.strip().lower()
         slug = re.sub(r"[^a-z0-9-]", "", slug)
 
-        url = f"{self.BASE_URL}/game/{slug}/"
-        response = self._make_request(url)
-
-        if not response:
-            return None
-
-        if response.status_code == 404:
-            return None
-
-        soup = BeautifulSoup(response.text, "html.parser")
-
-        result = {
-            "name": None,
-            "slug": slug,
-            "url": url,
-            "critic_score": None,
-            "user_score": None,
-        }
-
-        # Get game title
-        title_el = soup.select_one('div[class*="c-productHero_title"] h1, h1[class*="product_title"]')
-        if title_el:
-            result["name"] = title_el.get_text(strip=True)
-
-        # Get critic score (Metascore)
-        metascore_el = soup.select_one(
-            'div[class*="c-siteReviewScore"] span, '
-            'span[class*="metascore_w"], '
-            'div[class*="metascore"] span'
+        # Search returns critic score inline; fetch user score from the stats endpoint
+        search_url = (
+            f"{_MC_BACKEND}/finder/metacritic/search/{requests.utils.quote(slug)}/web"
+            f"?apiKey={_MC_API_KEY}&mcoTypeId=13&limit=5&page=1"
         )
-        if metascore_el:
-            score_text = metascore_el.get_text(strip=True)
-            if score_text.isdigit():
-                result["critic_score"] = int(score_text)
+        search_data = self._get(search_url)
 
-        # Try alternative metascore selector
-        if result["critic_score"] is None:
-            for el in soup.select('[data-testid="critic-score-value"], [class*="metascore"]'):
-                score_text = el.get_text(strip=True)
-                if score_text.isdigit():
-                    result["critic_score"] = int(score_text)
+        critic_score = None
+        name = None
+        if search_data:
+            for item in search_data.get("data", {}).get("items", []):
+                if item.get("slug") == slug and item.get("type") == "game-title":
+                    name = item.get("title")
+                    ss = item.get("criticScoreSummary") or {}
+                    raw = ss.get("score")
+                    if isinstance(raw, (int, float)) and raw > 0:
+                        critic_score = int(raw)
                     break
 
-        # Get user score
-        userscore_el = soup.select_one(
-            'div[class*="c-siteReviewScore_user"] span, '
-            'span[class*="user"], '
-            'div[class*="userscore"] span'
+        # Fetch user score from the dedicated stats endpoint
+        user_score = None
+        stats_url = (
+            f"{_MC_BACKEND}/reviews/metacritic/user/games/{slug}/stats/web"
+            f"?apiKey={_MC_API_KEY}&componentName=user-score-summary"
+            f"&componentDisplayName=User+Score+Summary&componentType=MetaScoreSummary"
         )
-        if userscore_el:
-            score_text = userscore_el.get_text(strip=True)
-            try:
-                # User scores are typically 0-10
-                user_score = float(score_text)
-                if 0 <= user_score <= 10:
-                    result["user_score"] = user_score
-            except ValueError:
-                pass
+        stats_data = self._get(stats_url)
+        if stats_data:
+            item = stats_data.get("data", {}).get("item") or {}
+            raw = item.get("score")
+            if isinstance(raw, (int, float)) and 0 < raw <= 10:
+                user_score = float(raw)
 
-        # Try alternative user score selector
-        if result["user_score"] is None:
-            for el in soup.select('[data-testid="user-score-value"], [class*="userscore"]'):
-                score_text = el.get_text(strip=True)
-                try:
-                    user_score = float(score_text)
-                    if 0 <= user_score <= 10:
-                        result["user_score"] = user_score
-                        break
-                except ValueError:
-                    continue
-
-        return result
+        return {
+            "name": name,
+            "slug": slug,
+            "url": f"{self.BASE_URL}/game/{slug}/",
+            "critic_score": critic_score,
+            "user_score": user_score,
+        }
 
     @staticmethod
     def _clean_game_name(name):
