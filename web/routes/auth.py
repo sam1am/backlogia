@@ -1,5 +1,5 @@
 # routes/auth.py
-# Epic and Amazon authentication routes
+# Epic, Amazon, and GOG authentication routes
 
 import subprocess
 from typing import Optional
@@ -21,6 +21,10 @@ class EpicAuthRequest(BaseModel):
 class AmazonAuthCompleteRequest(BaseModel):
     code: str
     session_id: Optional[str] = None
+
+
+class GogAuthRequest(BaseModel):
+    code: str
 
 
 @router.get("/api/epic/status")
@@ -216,3 +220,63 @@ def amazon_auth_status():
 
     except Exception as e:
         return {"authenticated": False, "error": str(e)}
+
+
+@router.get("/api/gog/status")
+def gog_auth_status():
+    """Check GOG authentication status."""
+    try:
+        from ..sources.gog import check_auth_status, GOG_LOGIN_URL
+
+        status = check_auth_status()
+        return {
+            "authenticated": status["authenticated"],
+            "source": status.get("source"),
+            "heroic": status.get("heroic", False),
+            "login_url": GOG_LOGIN_URL,
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.post("/api/gog/auth")
+def gog_authenticate(body: GogAuthRequest):
+    """Exchange a GOG authorization code for stored access/refresh tokens."""
+    try:
+        from ..sources.gog import exchange_code_for_token, save_gog_token
+
+        code = body.code.strip()
+        if not code:
+            raise HTTPException(status_code=400, detail="Authorization code is required")
+
+        # Strip the full redirect URL down to just the code if the user pasted the URL
+        if "code=" in code:
+            parsed = urlparse(code)
+            params = parse_qs(parsed.query)
+            code = params.get("code", [code])[0]
+
+        token_data = exchange_code_for_token(code)
+        if not token_data or not token_data.get("access_token"):
+            raise HTTPException(
+                status_code=400,
+                detail="Failed to exchange code for token. The code may be expired or invalid."
+            )
+
+        save_gog_token(token_data)
+        return {"success": True, "message": "GOG authentication successful"}
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.post("/api/gog/logout")
+def gog_logout():
+    """Clear stored GOG tokens."""
+    try:
+        from ..sources.gog import clear_gog_token
+        clear_gog_token()
+        return {"success": True, "message": "GOG credentials cleared"}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))

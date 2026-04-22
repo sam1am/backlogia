@@ -1,12 +1,224 @@
 # gog.py
-# Fetches games from GOG Galaxy database
+# Fetches games from GOG via direct API (OAuth) or local Galaxy database
 
+import json
 import os
 import sqlite3
-import json
+import time
+import urllib.error
+import urllib.parse
+import urllib.request
 from pathlib import Path
 
-from ..services.settings import get_gog_settings
+from ..services.settings import get_gog_settings, get_gog_credentials
+
+# GOG OAuth constants (public Galaxy client credentials — same as gogdl / Heroic)
+_GOG_CLIENT_ID = "46899977096215655"
+_GOG_CLIENT_SECRET = "9d85c43b1482497dbbce61f6e4aa173a433796eeae2ca8c5f6129f2dc4de46d9"
+_GOG_REDIRECT_URI = "https://embed.gog.com/on_login_success?origin=client"
+GOG_LOGIN_URL = (
+    "https://login.gog.com/auth"
+    "?client_id=46899977096215655"
+    "&redirect_uri=https%3A%2F%2Fembed.gog.com%2Fon_login_success%3Forigin%3Dclient"
+    "&response_type=code"
+    "&layout=client2"
+)
+
+
+# ---------------------------------------------------------------------------
+# Token management
+# ---------------------------------------------------------------------------
+
+def exchange_code_for_token(code: str) -> dict | None:
+    """Exchange a GOG authorization code for access/refresh tokens."""
+    params = urllib.parse.urlencode({
+        "client_id": _GOG_CLIENT_ID,
+        "client_secret": _GOG_CLIENT_SECRET,
+        "grant_type": "authorization_code",
+        "redirect_uri": _GOG_REDIRECT_URI,
+        "code": code.strip(),
+    })
+    try:
+        req = urllib.request.Request(f"https://auth.gog.com/token?{params}")
+        with urllib.request.urlopen(req, timeout=15) as resp:
+            return json.loads(resp.read().decode())
+    except urllib.error.HTTPError as e:
+        print(f"[GOG] Token exchange HTTP error {e.code}: {e.read().decode()}")
+        return None
+    except Exception as e:
+        print(f"[GOG] Token exchange failed: {e}")
+        return None
+
+
+def _refresh_access_token(refresh_token: str) -> dict | None:
+    """Refresh an expired GOG access token."""
+    params = urllib.parse.urlencode({
+        "client_id": _GOG_CLIENT_ID,
+        "client_secret": _GOG_CLIENT_SECRET,
+        "grant_type": "refresh_token",
+        "refresh_token": refresh_token,
+    })
+    try:
+        req = urllib.request.Request(f"https://auth.gog.com/token?{params}")
+        with urllib.request.urlopen(req, timeout=15) as resp:
+            return json.loads(resp.read().decode())
+    except Exception as e:
+        print(f"[GOG] Token refresh failed: {e}")
+        return None
+
+
+def save_gog_token(token_data: dict) -> None:
+    """Persist GOG token data to settings."""
+    from ..services.settings import set_setting, GOG_ACCESS_TOKEN, GOG_REFRESH_TOKEN, GOG_TOKEN_EXPIRES_AT
+    expires_at = str(time.time() + int(token_data.get("expires_in", 3600)))
+    set_setting(GOG_ACCESS_TOKEN, token_data.get("access_token", ""))
+    set_setting(GOG_REFRESH_TOKEN, token_data.get("refresh_token", ""))
+    set_setting(GOG_TOKEN_EXPIRES_AT, expires_at)
+
+
+def clear_gog_token() -> None:
+    """Remove stored GOG token from settings."""
+    from ..services.settings import set_setting, GOG_ACCESS_TOKEN, GOG_REFRESH_TOKEN, GOG_TOKEN_EXPIRES_AT
+    set_setting(GOG_ACCESS_TOKEN, "")
+    set_setting(GOG_REFRESH_TOKEN, "")
+    set_setting(GOG_TOKEN_EXPIRES_AT, "")
+
+
+def _get_heroic_token() -> dict | None:
+    """Load GOG token from Heroic Games Launcher's auth.json (if present)."""
+    heroic_auth = Path.home() / ".config" / "heroic" / "gog_store" / "auth.json"
+    if not heroic_auth.exists():
+        return None
+    try:
+        with open(heroic_auth) as f:
+            data = json.load(f)
+        if data.get("access_token"):
+            return data
+    except Exception:
+        pass
+    return None
+
+
+def get_valid_token() -> str | None:
+    """
+    Return a valid GOG access token, or None.
+
+    Priority:
+    1. Stored settings token (auto-refreshed if expired).
+    2. Heroic Games Launcher auth.json (read-only fallback).
+    """
+    creds = get_gog_credentials()
+    access_token = creds.get("access_token")
+    refresh_token = creds.get("refresh_token")
+    expires_at_str = creds.get("expires_at")
+
+    if access_token:
+        try:
+            expires_at = float(expires_at_str or 0)
+        except (TypeError, ValueError):
+            expires_at = 0
+
+        if time.time() < expires_at - 60:
+            return access_token
+
+        # Token expired — try refreshing
+        if refresh_token:
+            new_data = _refresh_access_token(refresh_token)
+            if new_data and new_data.get("access_token"):
+                save_gog_token(new_data)
+                return new_data["access_token"]
+
+    # Fall back to Heroic's token (not persisted in our settings)
+    heroic = _get_heroic_token()
+    if heroic:
+        return heroic.get("access_token")
+
+    return None
+
+
+def check_auth_status() -> dict:
+    """Return GOG authentication status dict."""
+    heroic_data = _get_heroic_token()
+    heroic_available = heroic_data is not None
+
+    creds = get_gog_credentials()
+    has_stored = bool(creds.get("access_token"))
+
+    token = get_valid_token()
+    if not token:
+        return {
+            "authenticated": False,
+            "heroic": heroic_available,
+            "source": None,
+        }
+
+    source = "stored" if has_stored else "heroic"
+    return {
+        "authenticated": True,
+        "source": source,
+        "heroic": heroic_available,
+    }
+
+
+# ---------------------------------------------------------------------------
+# Library fetch — GOG API
+# ---------------------------------------------------------------------------
+
+def get_gog_library_via_api() -> list:
+    """Fetch the GOG library via the GOG embed API (no Galaxy required)."""
+    token = get_valid_token()
+    if not token:
+        return []
+
+    games = []
+    page = 1
+    total_pages = 1
+
+    while page <= total_pages:
+        url = (
+            "https://embed.gog.com/account/getFilteredProducts"
+            f"?mediaType=1&sortBy=title&page={page}"
+        )
+        req = urllib.request.Request(url, headers={"Authorization": f"Bearer {token}"})
+        try:
+            with urllib.request.urlopen(req, timeout=15) as resp:
+                data = json.loads(resp.read().decode())
+        except Exception as e:
+            print(f"[GOG] API request failed (page {page}): {e}")
+            break
+
+        if page == 1:
+            total_pages = data.get("totalPages", 1)
+            print(f"[GOG] Fetching {total_pages} page(s) of GOG library via API...")
+
+        for product in data.get("products", []):
+            if not product.get("isGame", True):
+                continue
+            gog_id = str(product.get("id", ""))
+            raw_image = product.get("image", "")
+            if raw_image:
+                if raw_image.startswith("//"):
+                    cover = f"https:{raw_image}.jpg"
+                elif not raw_image.startswith("http"):
+                    cover = f"https://images.gog.com{raw_image}.jpg"
+                else:
+                    cover = raw_image
+            else:
+                cover = None
+            games.append({
+                "name": product.get("title"),
+                "product_id": gog_id,
+                "release_key": f"gog_{gog_id}" if gog_id else None,
+                "slug": product.get("slug"),
+                "cover_image": cover,
+                "release_date": product.get("releaseDate"),
+                "store": "gog",
+            })
+
+        page += 1
+
+    print(f"[GOG] Found {len(games)} games via API")
+    return games
 
 
 def find_gog_database():
@@ -64,9 +276,25 @@ def _parse_json_value(value):
 
 
 def get_gog_library():
+    """Return GOG library games.
+
+    Tries in order:
+    1. Direct GOG API (stored OAuth token or Heroic auth.json).
+    2. GOG Galaxy SQLite database (Windows/macOS).
+    3. Heroic library.json (Linux fallback, minimal data).
+    """
+    # --- Primary: GOG API ---
+    token = get_valid_token()
+    if token:
+        games = get_gog_library_via_api()
+        if games:
+            return games
+        print("[GOG] API returned no games, falling back to Galaxy DB...")
+
+    # --- Fallback: Galaxy DB / Heroic library.json ---
     db_path = find_gog_database()
     if not db_path:
-        print("[GOG DEBUG] GOG Galaxy database not found!")
+        print("[GOG] No GOG database found and no valid API token.")
         return []
 
     print(f"[GOG DEBUG] Using database: {db_path}")

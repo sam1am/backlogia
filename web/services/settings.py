@@ -17,6 +17,9 @@ ITCH_API_KEY = "itch_api_key"
 HUMBLE_SESSION_COOKIE = "humble_session_cookie"
 BATTLENET_SESSION_COOKIE = "battlenet_session_cookie"
 GOG_DB_PATH = "gog_db_path"
+GOG_ACCESS_TOKEN = "gog_access_token"
+GOG_REFRESH_TOKEN = "gog_refresh_token"
+GOG_TOKEN_EXPIRES_AT = "gog_token_expires_at"
 EA_BEARER_TOKEN = "ea_bearer_token"
 XBOX_XSTS_TOKEN = "xbox_xsts_token"
 XBOX_GAMEPASS_MARKET = "xbox_gamepass_market"
@@ -34,6 +37,9 @@ ENV_VAR_MAP = {
     HUMBLE_SESSION_COOKIE: "HUMBLE_SESSION_COOKIE",
     BATTLENET_SESSION_COOKIE: "BATTLENET_SESSION_COOKIE",
     GOG_DB_PATH: "GOG_DB_PATH",
+    GOG_ACCESS_TOKEN: "GOG_ACCESS_TOKEN",
+    GOG_REFRESH_TOKEN: "GOG_REFRESH_TOKEN",
+    GOG_TOKEN_EXPIRES_AT: "GOG_TOKEN_EXPIRES_AT",
     EA_BEARER_TOKEN: "EA_BEARER_TOKEN",
     XBOX_XSTS_TOKEN: "XBOX_XSTS_TOKEN",
     XBOX_GAMEPASS_MARKET: "XBOX_GAMEPASS_MARKET",
@@ -167,6 +173,15 @@ def get_gog_settings():
     """Get GOG Galaxy settings."""
     return {
         "db_path": get_setting(GOG_DB_PATH),
+    }
+
+
+def get_gog_credentials():
+    """Get GOG OAuth token credentials."""
+    return {
+        "access_token": get_setting(GOG_ACCESS_TOKEN),
+        "refresh_token": get_setting(GOG_REFRESH_TOKEN),
+        "expires_at": get_setting(GOG_TOKEN_EXPIRES_AT),
     }
 
 

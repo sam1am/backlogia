@@ -200,7 +200,6 @@ class IGDBClient:
             return req
 
         return {}
-
     def get_game_by_id(self, igdb_id):
         """Get a game by its IGDB ID."""
         results = self.get_games_by_ids([igdb_id])

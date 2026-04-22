@@ -1007,7 +1007,7 @@
                         <div class="icon"><img src="/static/images/gog-48.png" alt="GOG"></div>
                         <div class="text">
                             <span>Sync GOG</span>
-                            <small>Import from GOG Galaxy</small>
+                            <small>Import from GOG</small>
                         </div>
                     </button>
                     <button class="sync-btn" onclick="syncStore('itch')">
@@ -1254,18 +1254,82 @@
                         <div class="section-icon gog">G</div>
                         <div class="header-text">
                             <div class="section-title">GOG</div>
-                            <div class="section-description">Import from GOG Galaxy or browser</div>
+                            <div class="section-description">Import from GOG</div>
                         </div>
                         <div class="collapsible-toggle">▼</div>
                     </div>
                     <div class="collapsible-content">
                         <div class="collapsible-content-inner">
-                            <!-- Option 1: GOG Galaxy Database -->
+                            <!-- Option 1: Direct GOG API (OAuth) -->
                             <div class="method-section" style="margin-bottom: 20px;">
-                                <h4 style="color: #86328a; margin-bottom: 12px; font-size: 0.95rem;">Option 1: GOG Galaxy Database</h4>
+                                <h4 style="color: #86328a; margin-bottom: 12px; font-size: 0.95rem;">Option 1: GOG Account (recommended)</h4>
+
+                                <div class="form-group">
+                                    <label>Authentication Status</label>
+                                    <div id="gog-auth-status" class="auth-status">
+                                        <span class="status-indicator checking"></span>
+                                        <span class="status-text">Checking...</span>
+                                    </div>
+                                </div>
+
+                                <!-- Authentication UI -->
+                                <div id="gog-auth-ui" class="form-group" style="display: none;">
+                                    <label>Authenticate with GOG</label>
+                                    <div class="epic-auth-steps">
+                                        <div class="step-item">
+                                            <span class="step-number">1</span>
+                                            <span class="step-text">Click the button below to open the GOG login page</span>
+                                        </div>
+                                        <div class="step-item">
+                                            <span class="step-number">2</span>
+                                            <span class="step-text">Log in to your GOG account</span>
+                                        </div>
+                                        <div class="step-item">
+                                            <span class="step-number">3</span>
+                                            <span class="step-text">After login, copy the full redirect URL from your browser address bar (it starts with <code>https://embed.gog.com/on_login_success?...</code>)</span>
+                                        </div>
+                                        <div class="step-item">
+                                            <span class="step-number">4</span>
+                                            <span class="step-text">Paste the URL or just the <code>code=</code> value below and click "Submit Code"</span>
+                                        </div>
+                                    </div>
+                                    <div style="margin-top: 16px;">
+                                        <a id="gog-login-link" href="#" target="_blank" class="btn btn-secondary" style="margin-bottom: 12px;">
+                                            Open GOG Login Page
+                                        </a>
+                                    </div>
+                                    <div class="auth-code-input">
+                                        <input type="text" id="gog-auth-code" placeholder="Paste redirect URL or authorization code" style="flex: 1;">
+                                        <button type="button" class="btn btn-primary" onclick="submitGogAuthCode()">Submit Code</button>
+                                    </div>
+                                    <div id="gog-auth-error" class="error-text" style="display: none; margin-top: 8px;"></div>
+                                </div>
+
+                                <div class="form-group">
+                                    <button type="button" id="gog-auth-btn" class="btn btn-secondary" onclick="startGogAuth()" style="display: none;">
+                                        Authenticate
+                                    </button>
+                                    <button type="button" id="gog-logout-btn" class="btn btn-secondary" onclick="gogLogout()" style="display: none; margin-left: 8px;">
+                                        Log Out
+                                    </button>
+                                    <button type="button" class="btn btn-secondary" onclick="checkGogStatus()" style="margin-left: 8px;">
+                                        Refresh Status
+                                    </button>
+                                </div>
+
+                                <div class="help-text" style="margin-top: 4px;">
+                                    Works on any platform without GOG Galaxy. If you use
+                                    <a href="https://heroicgameslauncher.com" target="_blank">Heroic Games Launcher</a>
+                                    and are already logged in, Backlogia will use its credentials automatically.
+                                </div>
+                            </div>
+
+                            <!-- Option 2: GOG Galaxy Database -->
+                            <div class="method-section" style="margin-bottom: 20px;">
+                                <h4 style="color: #86328a; margin-bottom: 12px; font-size: 0.95rem;">Option 2: GOG Galaxy Database</h4>
                                 <div class="instructions-box" style="margin-bottom: 12px;">
                                     <p style="color: #888; font-size: 0.85rem;">
-                                        Requires GOG Galaxy to be installed locally. Set the database path in your project's <code style="background: rgba(255,255,255,0.1); padding: 2px 6px; border-radius: 4px;">.env</code> file.
+                                        Requires GOG Galaxy to be installed locally. Set the database path in your project's <code style="background: rgba(255,255,255,0.1); padding: 2px 6px; border-radius: 4px;">.env</code> file. Only used if no API token is available.
                                     </p>
                                 </div>
                                 <div class="form-group">
@@ -1282,9 +1346,9 @@
                                 </div>
                             </div>
 
-                            <!-- Option 2: Bookmarklet -->
+                            <!-- Option 3: Bookmarklet -->
                             <div class="method-section">
-                                <h4 style="color: #86328a; margin-bottom: 12px; font-size: 0.95rem;">Option 2: Browser Bookmarklet</h4>
+                                <h4 style="color: #86328a; margin-bottom: 12px; font-size: 0.95rem;">Option 3: Browser Bookmarklet</h4>
                                 <div class="instructions-box">
                                     <p style="margin-bottom: 8px; color: #e4e4e4;">Use the <strong>Backlogia Helper</strong> bookmarklet to import your GOG games:</p>
                                     <ol>
@@ -2148,6 +2212,7 @@ LOCAL_GAMES_DIR_2=/another/path/to/games</pre>
         document.addEventListener('DOMContentLoaded', function() {
             checkEpicStatus();
             checkAmazonStatus();
+            checkGogStatus();
             // Clean up old dismissed job IDs
             cleanupDismissedJobs();
             // Check for active jobs and show progress if any
@@ -2268,6 +2333,104 @@ LOCAL_GAMES_DIR_2=/another/path/to/games</pre>
         function bookmarkletClickHandler(event) {
             event.preventDefault();
             alert("Don't click here. Drag this to your bookmarks bar and run it from there.");
+        }
+
+        // GOG Authentication
+        function checkGogStatus() {
+            const statusEl = document.getElementById('gog-auth-status');
+            const indicator = statusEl.querySelector('.status-indicator');
+            const text = statusEl.querySelector('.status-text');
+            const authBtn = document.getElementById('gog-auth-btn');
+            const logoutBtn = document.getElementById('gog-logout-btn');
+            const authUi = document.getElementById('gog-auth-ui');
+            const loginLink = document.getElementById('gog-login-link');
+
+            indicator.className = 'status-indicator checking';
+            text.textContent = 'Checking...';
+
+            fetch('/api/gog/status')
+            .then(response => response.json())
+            .then(data => {
+                if (data.login_url) {
+                    loginLink.href = data.login_url;
+                }
+                if (data.authenticated) {
+                    indicator.className = 'status-indicator authenticated';
+                    const sourceLabel = data.source === 'heroic' ? 'via Heroic Games Launcher' : 'authenticated';
+                    text.textContent = 'Authenticated' + (data.source === 'heroic' ? ' (Heroic)' : '');
+                    authBtn.style.display = 'none';
+                    logoutBtn.style.display = data.source === 'stored' ? 'inline-flex' : 'none';
+                    authUi.style.display = 'none';
+                } else {
+                    indicator.className = 'status-indicator not-authenticated';
+                    text.textContent = data.heroic ? 'Heroic token not found — authenticate manually' : 'Not authenticated';
+                    authBtn.style.display = 'inline-flex';
+                    logoutBtn.style.display = 'none';
+                }
+            })
+            .catch(error => {
+                indicator.className = 'status-indicator not-authenticated';
+                text.textContent = 'Error checking status';
+            });
+        }
+
+        function startGogAuth() {
+            const authUi = document.getElementById('gog-auth-ui');
+            const authBtn = document.getElementById('gog-auth-btn');
+            authUi.style.display = 'block';
+            authBtn.style.display = 'none';
+            document.getElementById('gog-auth-code').value = '';
+            document.getElementById('gog-auth-error').style.display = 'none';
+        }
+
+        function submitGogAuthCode() {
+            const codeInput = document.getElementById('gog-auth-code');
+            const errorEl = document.getElementById('gog-auth-error');
+            const code = codeInput.value.trim();
+
+            if (!code) {
+                errorEl.textContent = 'Please enter the redirect URL or authorization code';
+                errorEl.style.display = 'block';
+                return;
+            }
+
+            errorEl.style.display = 'none';
+            showStatus('Authenticating with GOG...', 'loading');
+
+            fetch('/api/gog/auth', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ code: code })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    showStatus(data.message, 'success');
+                    document.getElementById('gog-auth-ui').style.display = 'none';
+                    checkGogStatus();
+                } else {
+                    errorEl.textContent = data.detail || data.error || 'Authentication failed';
+                    errorEl.style.display = 'block';
+                    showStatus('GOG authentication failed', 'error');
+                }
+            })
+            .catch(error => {
+                errorEl.textContent = 'Network error: ' + error.message;
+                errorEl.style.display = 'block';
+                showStatus('Network error', 'error');
+            });
+        }
+
+        function gogLogout() {
+            fetch('/api/gog/logout', { method: 'POST' })
+            .then(response => response.json())
+            .then(data => {
+                showStatus('GOG credentials cleared', 'success');
+                checkGogStatus();
+            })
+            .catch(error => {
+                showStatus('Error clearing GOG credentials', 'error');
+            });
         }
 
         // Generate the bookmarklet code
