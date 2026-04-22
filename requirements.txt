@@ -16,9 +16,6 @@ jinja2
 # IGDB integration
 python-dotenv
 
-# Metacritic scraping
-beautifulsoup4
-
 # Authentication (optional)
 bcrypt
 itsdangerous
