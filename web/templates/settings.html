@@ -1076,6 +1076,26 @@
             </div>
 
             <div class="sync-section">
+                <div class="sync-section-title">Steam Metadata</div>
+                <div class="sync-grid">
+                    <button class="sync-btn" onclick="syncSteam('missing')">
+                        <div class="icon"><img src="/static/images/steam-100.png" alt="Steam"></div>
+                        <div class="text">
+                            <span>Sync Missing Steam Metadata</span>
+                            <small>Fetch Steam store data for unmatched games</small>
+                        </div>
+                    </button>
+                    <button class="sync-btn" onclick="syncSteam('all')">
+                        <div class="icon"><img src="/static/images/steam-100.png" alt="Steam"></div>
+                        <div class="text">
+                            <span>Resync All Steam Metadata</span>
+                            <small>Re-fetch Steam store data for all games</small>
+                        </div>
+                    </button>
+                </div>
+            </div>
+
+            <div class="sync-section">
                 <div class="sync-section-title">IGDB Metadata</div>
                 <div class="sync-grid">
                     <button class="sync-btn" onclick="syncIgdb('missing')">
@@ -1902,6 +1922,36 @@ LOCAL_GAMES_DIR_2=/another/path/to/games</pre>
                 if (data.success) {
                     showStatus(data.message, 'success');
                     // Start polling for job updates
+                    checkActiveJobs();
+                    startJobPolling();
+                } else {
+                    showStatus(data.error || 'Failed to start sync', 'error');
+                }
+            })
+            .catch(error => {
+                btn.disabled = false;
+                btn.innerHTML = originalContent;
+                showStatus('Network error: ' + error.message, 'error');
+            });
+        }
+
+        // Sync Steam (async with job tracking)
+        function syncSteam(mode) {
+            const btn = event.target.closest('.sync-btn');
+            btn.disabled = true;
+            const originalContent = btn.innerHTML;
+            btn.innerHTML = '<span class="spinner"></span> Starting...';
+
+            fetch(`/api/sync/steam/${mode}/async`, {
+                method: 'POST'
+            })
+            .then(response => response.json())
+            .then(data => {
+                btn.disabled = false;
+                btn.innerHTML = originalContent;
+
+                if (data.success) {
+                    showStatus(data.message, 'success');
                     checkActiveJobs();
                     startJobPolling();
                 } else {

@@ -1161,9 +1161,9 @@
                 <button class="scroll-btn scroll-btn-left" onclick="scrollRow(this, -1)">&lsaquo;</button>
                 <div class="game-row">
                 {% for game in highly_rated %}
-                {% set screenshots = parse_json(game.igdb_screenshots) %}
+                {% set screenshots = parse_json(game.screenshots) %}
                 {% set genres = parse_json(game.genres) %}
-                {% set cover = game.cover_url_override or game.igdb_cover_url or game.cover_image %}
+                {% set cover = game.cover_url_override or game.cover_url or game.cover_image %}
                 {% set bg = screenshots[0] if screenshots else cover %}
                 <div class="featured-card" data-game-id="{{ game.id }}" onclick="openExpandedCardFromEvent(event, this)">
                     <div class="featured-card-media">
@@ -1188,7 +1188,7 @@
                             {% endfor %}
                         </div>
                         {% endif %}
-                        {% set desc = game.igdb_summary or game.description %}
+                        {% set desc = game.summary or game.description %}
                         {% if desc %}
                         <p class="featured-card-desc">{{ desc }}</p>
                         {% endif %}
@@ -1220,9 +1220,9 @@
                 <button class="scroll-btn scroll-btn-left" onclick="scrollRow(this, -1)">&lsaquo;</button>
                 <div class="game-row">
                 {% for game in most_played %}
-                {% set screenshots = parse_json(game.igdb_screenshots) %}
+                {% set screenshots = parse_json(game.screenshots) %}
                 {% set genres = parse_json(game.genres) %}
-                {% set cover = game.cover_url_override or game.igdb_cover_url or game.cover_image %}
+                {% set cover = game.cover_url_override or game.cover_url or game.cover_image %}
                 {% set bg = screenshots[0] if screenshots else cover %}
                 <div class="featured-card" data-game-id="{{ game.id }}" onclick="openExpandedCardFromEvent(event, this)">
                     <div class="featured-card-media">
@@ -1247,7 +1247,7 @@
                             {% endfor %}
                         </div>
                         {% endif %}
-                        {% set desc = game.igdb_summary or game.description %}
+                        {% set desc = game.summary or game.description %}
                         {% if desc %}
                         <p class="featured-card-desc">{{ desc }}</p>
                         {% endif %}
@@ -1282,9 +1282,9 @@
                 <button class="scroll-btn scroll-btn-left" onclick="scrollRow(this, -1)">&lsaquo;</button>
                 <div class="game-row">
                 {% for game in critic_favorites %}
-                {% set screenshots = parse_json(game.igdb_screenshots) %}
+                {% set screenshots = parse_json(game.screenshots) %}
                 {% set genres = parse_json(game.genres) %}
-                {% set cover = game.cover_url_override or game.igdb_cover_url or game.cover_image %}
+                {% set cover = game.cover_url_override or game.cover_url or game.cover_image %}
                 {% set bg = screenshots[0] if screenshots else cover %}
                 <div class="featured-card" data-game-id="{{ game.id }}" onclick="openExpandedCardFromEvent(event, this)">
                     <div class="featured-card-media">
@@ -1309,7 +1309,7 @@
                             {% endfor %}
                         </div>
                         {% endif %}
-                        {% set desc = game.igdb_summary or game.description %}
+                        {% set desc = game.summary or game.description %}
                         {% if desc %}
                         <p class="featured-card-desc">{{ desc }}</p>
                         {% endif %}
@@ -1341,9 +1341,9 @@
                 <button class="scroll-btn scroll-btn-left" onclick="scrollRow(this, -1)">&lsaquo;</button>
                 <div class="game-row">
                 {% for game in hidden_gems %}
-                {% set screenshots = parse_json(game.igdb_screenshots) %}
+                {% set screenshots = parse_json(game.screenshots) %}
                 {% set genres = parse_json(game.genres) %}
-                {% set cover = game.cover_url_override or game.igdb_cover_url or game.cover_image %}
+                {% set cover = game.cover_url_override or game.cover_url or game.cover_image %}
                 {% set bg = screenshots[0] if screenshots else cover %}
                 <div class="featured-card" data-game-id="{{ game.id }}" onclick="openExpandedCardFromEvent(event, this)">
                     <div class="featured-card-media">
@@ -1368,7 +1368,7 @@
                             {% endfor %}
                         </div>
                         {% endif %}
-                        {% set desc = game.igdb_summary or game.description %}
+                        {% set desc = game.summary or game.description %}
                         {% if desc %}
                         <p class="featured-card-desc">{{ desc }}</p>
                         {% endif %}
@@ -1400,9 +1400,9 @@
                 <button class="scroll-btn scroll-btn-left" onclick="scrollRow(this, -1)">&lsaquo;</button>
                 <div class="game-row">
                 {% for game in random_picks %}
-                {% set screenshots = parse_json(game.igdb_screenshots) %}
+                {% set screenshots = parse_json(game.screenshots) %}
                 {% set genres = parse_json(game.genres) %}
-                {% set cover = game.cover_url_override or game.igdb_cover_url or game.cover_image %}
+                {% set cover = game.cover_url_override or game.cover_url or game.cover_image %}
                 {% set bg = screenshots[0] if screenshots else cover %}
                 <div class="featured-card" data-game-id="{{ game.id }}" onclick="openExpandedCardFromEvent(event, this)">
                     <div class="featured-card-media">
@@ -1427,7 +1427,7 @@
                             {% endfor %}
                         </div>
                         {% endif %}
-                        {% set desc = game.igdb_summary or game.description %}
+                        {% set desc = game.summary or game.description %}
                         {% if desc %}
                         <p class="featured-card-desc">{{ desc }}</p>
                         {% endif %}
@@ -1505,11 +1505,11 @@
             {{ game.id }}: {
                 id: {{ game.id }},
                 name: {{ game.name|tojson }},
-                igdb_cover_url: {{ (game.igdb_cover_url or '')|tojson }},
+                cover_url: {{ (game.cover_url or '')|tojson }},
                 cover_image: {{ (game.cover_image or '')|tojson }},
-                igdb_summary: {{ (game.igdb_summary or '')|tojson }},
+                summary: {{ (game.summary or '')|tojson }},
                 description: {{ (game.description or '')|tojson }},
-                igdb_screenshots: {{ (game.igdb_screenshots or '[]')|safe }},
+                screenshots: {{ (game.screenshots or '[]')|safe }},
                 genres: {{ (game.genres or '[]')|safe }},
                 total_rating: {{ game.total_rating or 'null' }},
                 igdb_rating: {{ game.igdb_rating or 'null' }},
@@ -1560,11 +1560,11 @@
 
         // Build a featured card HTML from a game object
         function buildFeaturedCardHtml(game, lazy) {
-            const screenshots = game.igdb_screenshots || [];
+            const screenshots = game.screenshots || [];
             const genres = game.genres || [];
-            const cover = game.igdb_cover_url || game.cover_image;
+            const cover = game.cover_url || game.cover_image;
             const bg = screenshots[0] || cover;
-            const desc = game.igdb_summary || game.description;
+            const desc = game.summary || game.description;
             const loading = lazy ? ' loading="lazy"' : '';
 
             let ratingsHtml = '';
@@ -1633,11 +1633,11 @@
 
             var slidesHtml = '';
             slideshowGames.forEach(function(game, index) {
-                var screenshots = game.igdb_screenshots || [];
+                var screenshots = game.screenshots || [];
                 var genres = game.genres || [];
-                var bg = screenshots[0] || game.igdb_cover_url || game.cover_image;
+                var bg = screenshots[0] || game.cover_url || game.cover_image;
                 var bgSrc = bg ? bg.replace('t_screenshot_big', 't_1080p') : '';
-                var desc = game.igdb_summary || game.description;
+                var desc = game.summary || game.description;
                 var badgeText = popularitySource === 'igdb_popularity' ? 'Trending in Your Library' : 'Featured in Your Library';
 
                 var genresHtml = '';
@@ -1912,11 +1912,11 @@
         function openExpandedCard(game) {
             currentGame = game;
             const overlay = document.getElementById('expanded-overlay');
-            const screenshots = game.igdb_screenshots || [];
+            const screenshots = game.screenshots || [];
             const genres = game.genres || [];
-            const cover = game.igdb_cover_url || game.cover_image || '';
+            const cover = game.cover_url || game.cover_image || '';
             const bg = screenshots[0] || cover;
-            const desc = game.igdb_summary || game.description || 'No description available.';
+            const desc = game.summary || game.description || 'No description available.';
 
             document.getElementById('expanded-bg').src = bg ? bg.replace('t_screenshot_big', 't_1080p') : '';
             document.getElementById('expanded-cover').src = cover;
@@ -1992,7 +1992,7 @@
                     const gameId = parseInt(card.dataset.gameId, 10);
                     const game = gameDataStore[gameId];
                     if (game) {
-                        const screenshots = game.igdb_screenshots || [];
+                        const screenshots = game.screenshots || [];
                         const index = parseInt(screenshot.dataset.index, 10);
                         openLightbox(screenshots, index);
                     }

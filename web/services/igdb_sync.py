@@ -113,20 +113,7 @@ class IGDBClient:
 
     def get_game_by_id(self, igdb_id):
         """Get a game by its IGDB ID."""
-        # Include external_games to get Steam App ID (category 1 = Steam)
-        body = f'''
-            where id = {igdb_id};
-            fields id, name, slug, rating, rating_count, aggregated_rating,
-                   aggregated_rating_count, total_rating, total_rating_count,
-                   summary, storyline, first_release_date,
-                   genres.name, themes.id, themes.name, platforms.name,
-                   involved_companies.company.name, involved_companies.developer,
-                   involved_companies.publisher,
-                   cover.url, screenshots.url,
-                   external_games.uid, external_games.category;
-        '''
-
-        results = self._request("games", body)
+        results = self.get_games_by_ids([igdb_id])
         return results[0] if results else None
 
     def get_popularity_types(self):
@@ -260,9 +247,9 @@ def add_igdb_columns(conn):
         ("aggregated_rating_count", "INTEGER"),
         ("total_rating", "REAL"),  # Combined rating (0-100)
         ("total_rating_count", "INTEGER"),
-        ("igdb_summary", "TEXT"),
-        ("igdb_cover_url", "TEXT"),
-        ("igdb_screenshots", "TEXT"),  # JSON array of screenshot URLs
+        ("summary", "TEXT"),
+        ("cover_url", "TEXT"),
+        ("screenshots", "TEXT"),  # JSON array of screenshot URLs
         ("igdb_matched_at", "TIMESTAMP"),
         ("nsfw", "BOOLEAN DEFAULT 0"),  # NSFW flag (from IGDB themes/age ratings or manual)
         ("steam_app_id", "TEXT"),  # Steam App ID from IGDB external_games (for ProtonDB)
@@ -333,6 +320,91 @@ def merge_and_dedupe_genres(existing_genres_json, new_genres):
             merged.append(genre.strip())
 
     return json.dumps(merged) if merged else None
+
+
+def apply_igdb_data(conn, game_id, igdb_game, existing_genres=None):
+    """Apply IGDB game data to the database for a given game_id.
+
+    Args:
+        conn: Database connection
+        game_id: The local game ID
+        igdb_game: IGDB game data dict
+        existing_genres: Optional pre-fetched genres JSON string; fetched from DB if None
+    """
+    cursor = conn.cursor()
+
+    # Extract cover URL
+    cover_url = None
+    if igdb_game.get("cover"):
+        cover_url = igdb_game["cover"].get("url", "")
+        cover_url = cover_url.replace("t_thumb", "t_cover_big")
+        if cover_url and not cover_url.startswith("http"):
+            cover_url = "https:" + cover_url
+
+    # Extract up to 5 screenshot URLs
+    screenshots = []
+    if igdb_game.get("screenshots"):
+        for screenshot in igdb_game["screenshots"][:5]:
+            url = screenshot.get("url", "")
+            url = url.replace("t_thumb", "t_screenshot_big")
+            if url and not url.startswith("http"):
+                url = "https:" + url
+            screenshots.append(url)
+
+    # Check if game is NSFW
+    is_nsfw = IGDBClient.is_nsfw(igdb_game)
+
+    # Extract Steam App ID from IGDB external_games
+    steam_app_id = IGDBClient.extract_steam_app_id(igdb_game)
+
+    # Fetch existing genres if not provided
+    if existing_genres is None:
+        cursor.execute("SELECT genres FROM games WHERE id = ?", (game_id,))
+        row = cursor.fetchone()
+        existing_genres = row[0] if row else None
+
+    # Extract genres and themes from IGDB and merge with existing
+    igdb_tags = extract_genres_and_themes(igdb_game)
+    merged_genres = merge_and_dedupe_genres(existing_genres, igdb_tags)
+
+    cursor.execute(
+        """UPDATE games SET
+            igdb_id = ?,
+            igdb_slug = ?,
+            igdb_rating = ?,
+            igdb_rating_count = ?,
+            aggregated_rating = ?,
+            aggregated_rating_count = ?,
+            total_rating = ?,
+            total_rating_count = ?,
+            summary = COALESCE(summary, ?),
+            cover_url = COALESCE(cover_url, ?),
+            screenshots = COALESCE(screenshots, ?),
+            igdb_matched_at = CURRENT_TIMESTAMP,
+            nsfw = ?,
+            genres = ?,
+            steam_app_id = ?,
+            igdb_release_date = ?
+        WHERE id = ?""",
+        (
+            igdb_game.get("id"),
+            igdb_game.get("slug"),
+            igdb_game.get("rating"),
+            igdb_game.get("rating_count"),
+            igdb_game.get("aggregated_rating"),
+            igdb_game.get("aggregated_rating_count"),
+            igdb_game.get("total_rating"),
+            igdb_game.get("total_rating_count"),
+            igdb_game.get("summary"),
+            cover_url,
+            json.dumps(screenshots) if screenshots else None,
+            1 if is_nsfw else 0,
+            merged_genres,
+            steam_app_id,
+            igdb_game.get("first_release_date"),
+            game_id,
+        ),
+    )
 
 
 def calculate_match_score(game_name, igdb_result, game_release_year=None):
@@ -462,75 +534,8 @@ def sync_games(conn, client, limit=None, force=False, progress_callback=None):
 
             min_match_score = int(get_setting(IGDB_MATCH_THRESHOLD, "50"))
             if best_match and best_score >= min_match_score:
-                # Extract cover URL (IGDB returns thumbnail, we want bigger)
-                cover_url = None
-                if best_match.get("cover"):
-                    cover_url = best_match["cover"].get("url", "")
-                    # Convert to larger image
-                    cover_url = cover_url.replace("t_thumb", "t_cover_big")
-                    if cover_url and not cover_url.startswith("http"):
-                        cover_url = "https:" + cover_url
-
-                # Extract up to 5 screenshot URLs
-                screenshots = []
-                if best_match.get("screenshots"):
-                    for screenshot in best_match["screenshots"][:5]:
-                        url = screenshot.get("url", "")
-                        # Convert to larger image (screenshot_big = 889x500)
-                        url = url.replace("t_thumb", "t_screenshot_big")
-                        if url and not url.startswith("http"):
-                            url = "https:" + url
-                        screenshots.append(url)
-
-                # Check if game is NSFW
-                is_nsfw = IGDBClient.is_nsfw(best_match)
-
-                # Extract Steam App ID from IGDB external_games
-                steam_app_id = IGDBClient.extract_steam_app_id(best_match)
-
-                # Extract genres and themes from IGDB and merge with existing
-                igdb_tags = extract_genres_and_themes(best_match)
-                merged_genres = merge_and_dedupe_genres(existing_genres, igdb_tags)
-
-                # Update database
-                cursor.execute(
-                    """UPDATE games SET
-                        igdb_id = ?,
-                        igdb_slug = ?,
-                        igdb_rating = ?,
-                        igdb_rating_count = ?,
-                        aggregated_rating = ?,
-                        aggregated_rating_count = ?,
-                        total_rating = ?,
-                        total_rating_count = ?,
-                        igdb_summary = ?,
-                        igdb_cover_url = ?,
-                        igdb_screenshots = ?,
-                        igdb_matched_at = CURRENT_TIMESTAMP,
-                        nsfw = ?,
-                        genres = ?,
-                        steam_app_id = ?,
-                        igdb_release_date = ?
-                    WHERE id = ?""",
-                    (
-                        best_match.get("id"),
-                        best_match.get("slug"),
-                        best_match.get("rating"),
-                        best_match.get("rating_count"),
-                        best_match.get("aggregated_rating"),
-                        best_match.get("aggregated_rating_count"),
-                        best_match.get("total_rating"),
-                        best_match.get("total_rating_count"),
-                        best_match.get("summary"),
-                        cover_url,
-                        json.dumps(screenshots) if screenshots else None,
-                        1 if is_nsfw else 0,
-                        merged_genres,
-                        steam_app_id,
-                        best_match.get("first_release_date"),
-                        game_id,
-                    ),
-                )
+                # Apply IGDB data to database
+                apply_igdb_data(conn, game_id, best_match, existing_genres=existing_genres)
                 conn.commit()
 
                 rating_str = ""

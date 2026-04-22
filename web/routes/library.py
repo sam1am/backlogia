@@ -298,7 +298,7 @@ def game_detail(request: Request, game_id: int, conn: sqlite3.Connection = Depen
     # Use the best game data as primary (prefer one with IGDB data, then playtime)
     primary_game = game_dict
     for g in related_games:
-        if g.get("igdb_cover_url") and not primary_game.get("igdb_cover_url"):
+        if g.get("cover_url") and not primary_game.get("cover_url"):
             primary_game = g
         elif g.get("playtime_hours") and not primary_game.get("playtime_hours"):
             primary_game = g

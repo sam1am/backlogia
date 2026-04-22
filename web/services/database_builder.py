@@ -53,6 +53,7 @@ def create_database():
             -- Tracking
             added_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
             updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            steam_synced_at TIMESTAMP,
 
             -- Soft-delete for games removed from store
             removed BOOLEAN DEFAULT 0,
@@ -145,7 +146,7 @@ def import_steam_games(conn):
     try:
         from ..sources.steam import get_steam_library
 
-        games = get_steam_library(fetch_reviews=True, max_workers=5)
+        games = get_steam_library()
         if not games:
             print("  No Steam games found or not authenticated")
             return 0
@@ -162,28 +163,26 @@ def import_steam_games(conn):
 
                 cursor.execute("""
                     INSERT INTO games (
-                        name, store, store_id, cover_image, background_image, icon,
-                        playtime_hours, critics_score, extra_data, updated_at
-                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                        name, store, store_id, steam_app_id, cover_image, background_image, icon,
+                        playtime_hours, updated_at
+                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
                     ON CONFLICT(store, store_id) DO UPDATE SET
                         name = excluded.name,
+                        steam_app_id = excluded.steam_app_id,
                         cover_image = excluded.cover_image,
                         background_image = excluded.background_image,
                         icon = excluded.icon,
                         playtime_hours = excluded.playtime_hours,
-                        critics_score = excluded.critics_score,
-                        extra_data = excluded.extra_data,
                         updated_at = excluded.updated_at
                 """, (
                     game.get("name"),
                     "steam",
                     store_id,
+                    store_id,
                     cover_image,
                     background_image,
                     game.get("icon_url"),
                     game.get("playtime_hours"),
-                    game.get("review_score"),  # Steam user review percentage
-                    json.dumps(game),
                     datetime.now().isoformat()
                 ))
                 if store_id:
@@ -883,6 +882,18 @@ def add_average_rating_column(conn):
     if "average_rating" not in existing_columns:
         cursor.execute("ALTER TABLE games ADD COLUMN average_rating REAL")
         print("Added column: average_rating")
+        conn.commit()
+
+
+def add_steam_synced_at_column(conn):
+    """Add steam_synced_at column to the database if it doesn't exist."""
+    cursor = conn.cursor()
+    cursor.execute("PRAGMA table_info(games)")
+    existing_columns = {row[1] for row in cursor.fetchall()}
+
+    if "steam_synced_at" not in existing_columns:
+        cursor.execute("ALTER TABLE games ADD COLUMN steam_synced_at TIMESTAMP")
+        print("Added column: steam_synced_at")
         conn.commit()
 
 

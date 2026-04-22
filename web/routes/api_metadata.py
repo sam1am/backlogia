@@ -71,9 +71,7 @@ class BulkEditRequest(BaseModel):
 def update_igdb(game_id: int, body: UpdateIgdbRequest, conn: sqlite3.Connection = Depends(get_db)):
     """Update IGDB ID for a game."""
     # Import here to avoid circular imports
-    from ..services.igdb_sync import (
-        IGDBClient, extract_genres_and_themes, merge_and_dedupe_genres
-    )
+    from ..services.igdb_sync import IGDBClient, apply_igdb_data
     from ..services.database_builder import update_average_rating
 
     igdb_id = body.igdb_id
@@ -81,6 +79,12 @@ def update_igdb(game_id: int, body: UpdateIgdbRequest, conn: sqlite3.Connection 
     # Allow clearing the IGDB ID
     if igdb_id is None:
         cursor = conn.cursor()
+        cursor.execute(
+            "SELECT summary, cover_url, screenshots FROM games WHERE id = ?",
+            (game_id,),
+        )
+        row = cursor.fetchone()
+        existing_summary, existing_cover, existing_screenshots = row if row else (None, None, None)
         cursor.execute(
             """UPDATE games SET
                 igdb_id = NULL,
@@ -91,12 +95,12 @@ def update_igdb(game_id: int, body: UpdateIgdbRequest, conn: sqlite3.Connection 
                 aggregated_rating_count = NULL,
                 total_rating = NULL,
                 total_rating_count = NULL,
-                igdb_summary = NULL,
-                igdb_cover_url = NULL,
-                igdb_screenshots = NULL,
+                summary = CASE WHEN ? IS NOT NULL THEN summary ELSE NULL END,
+                cover_url = CASE WHEN ? IS NOT NULL THEN cover_url ELSE NULL END,
+                screenshots = CASE WHEN ? IS NOT NULL THEN screenshots ELSE NULL END,
                 igdb_matched_at = NULL
             WHERE id = ?""",
-            (game_id,),
+            (existing_summary, existing_cover, existing_screenshots, game_id),
         )
         conn.commit()
         update_average_rating(conn, game_id)
@@ -110,78 +114,7 @@ def update_igdb(game_id: int, body: UpdateIgdbRequest, conn: sqlite3.Connection 
         if not igdb_game:
             raise HTTPException(status_code=404, detail=f"No game found with IGDB ID {igdb_id}")
 
-        # Extract cover URL
-        cover_url = None
-        if igdb_game.get("cover"):
-            cover_url = igdb_game["cover"].get("url", "")
-            cover_url = cover_url.replace("t_thumb", "t_cover_big")
-            if cover_url and not cover_url.startswith("http"):
-                cover_url = "https:" + cover_url
-
-        # Extract screenshots
-        screenshots = []
-        if igdb_game.get("screenshots"):
-            for screenshot in igdb_game["screenshots"][:5]:
-                url = screenshot.get("url", "")
-                url = url.replace("t_thumb", "t_screenshot_big")
-                if url and not url.startswith("http"):
-                    url = "https:" + url
-                screenshots.append(url)
-
-        # Check if game is NSFW
-        is_nsfw = IGDBClient.is_nsfw(igdb_game)
-
-        # Extract Steam App ID from IGDB external_games
-        steam_app_id = IGDBClient.extract_steam_app_id(igdb_game)
-
-        # Update the database
-        cursor = conn.cursor()
-
-        # Fetch existing genres to merge with IGDB data
-        cursor.execute("SELECT genres FROM games WHERE id = ?", (game_id,))
-        row = cursor.fetchone()
-        existing_genres = row[0] if row else None
-
-        # Extract genres and themes from IGDB and merge with existing
-        igdb_tags = extract_genres_and_themes(igdb_game)
-        merged_genres = merge_and_dedupe_genres(existing_genres, igdb_tags)
-
-        cursor.execute(
-            """UPDATE games SET
-                igdb_id = ?,
-                igdb_slug = ?,
-                igdb_rating = ?,
-                igdb_rating_count = ?,
-                aggregated_rating = ?,
-                aggregated_rating_count = ?,
-                total_rating = ?,
-                total_rating_count = ?,
-                igdb_summary = ?,
-                igdb_cover_url = ?,
-                igdb_screenshots = ?,
-                igdb_matched_at = CURRENT_TIMESTAMP,
-                nsfw = ?,
-                genres = ?,
-                steam_app_id = ?
-            WHERE id = ?""",
-            (
-                igdb_game.get("id"),
-                igdb_game.get("slug"),
-                igdb_game.get("rating"),
-                igdb_game.get("rating_count"),
-                igdb_game.get("aggregated_rating"),
-                igdb_game.get("aggregated_rating_count"),
-                igdb_game.get("total_rating"),
-                igdb_game.get("total_rating_count"),
-                igdb_game.get("summary"),
-                cover_url,
-                json.dumps(screenshots) if screenshots else None,
-                1 if is_nsfw else 0,
-                merged_genres,
-                steam_app_id,
-                game_id,
-            ),
-        )
+        apply_igdb_data(conn, game_id, igdb_game)
         conn.commit()
         update_average_rating(conn, game_id)
 

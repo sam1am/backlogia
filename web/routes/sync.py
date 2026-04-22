@@ -246,6 +246,40 @@ def sync_store_async(store: StoreType):
     return {"success": True, "job_id": job_id, "message": f"Started {store_name} sync job"}
 
 
+@router.post("/api/sync/steam/{mode}/async")
+def sync_steam_async(mode: str):
+    """Start a background job to sync Steam review scores. Returns job ID for tracking."""
+    from ..services.steam_sync import sync_steam
+
+    mode_text = "all Steam games" if mode == "all" else "missing Steam games"
+    job_id = create_job(JobType.STEAM_SYNC, f"Starting Steam sync ({mode_text})...")
+
+    def run_sync(job_id: str):
+        try:
+            conn = sqlite3.connect(DATABASE_PATH)
+            conn.row_factory = sqlite3.Row
+
+            update_job_progress(job_id, 0, 1, "Initializing Steam sync...")
+
+            def on_progress(current, total, message):
+                update_job_progress(job_id, current, total, message)
+
+            force = (mode == "all")
+            updated, failed_reviews, failed_store = sync_steam(conn, force=force, progress_callback=on_progress)
+
+            conn.close()
+
+            message = f"Steam sync complete: {failed_reviews} failed to fetch reviews, {failed_store} failed to fetch store data"
+            complete_job(job_id, json.dumps({"updated": updated, "failed": failed_store}), message)
+
+        except Exception as e:
+            fail_job(job_id, str(e))
+
+    run_job_async(job_id, run_sync)
+
+    return {"success": True, "job_id": job_id, "message": f"Started Steam sync ({mode_text})"}
+
+
 @router.post("/api/sync/igdb/{mode}/async")
 def sync_igdb_async(mode: str):
     """Start a background job to sync IGDB metadata. Returns job ID for tracking."""

@@ -39,8 +39,8 @@ def _get_library_games(conn):
     """Get all games with IGDB IDs from the library."""
     cursor = conn.cursor()
     cursor.execute(
-        """SELECT id, name, store, igdb_id, igdb_cover_url, cover_image,
-                  igdb_summary, description, igdb_screenshots, total_rating,
+        """SELECT id, name, store, igdb_id, cover_url, cover_image,
+                  summary, description, screenshots, total_rating,
                   igdb_rating, aggregated_rating, genres, playtime_hours
            FROM games
            WHERE igdb_id IS NOT NULL AND igdb_id > 0""" + EXCLUDE_HIDDEN_FILTER + """
@@ -205,11 +205,11 @@ def _game_to_json(game):
         "id": game["id"],
         "name": game["name"],
         "store": game.get("store", ""),
-        "igdb_cover_url": game.get("igdb_cover_url") or "",
+        "cover_url": game.get("cover_url") or "",
         "cover_image": game.get("cover_image") or "",
-        "igdb_summary": game.get("igdb_summary") or "",
+        "summary": game.get("summary") or "",
         "description": game.get("description") or "",
-        "igdb_screenshots": parse_json_field(game.get("igdb_screenshots")),
+        "screenshots": parse_json_field(game.get("screenshots")),
         "genres": parse_json_field(game.get("genres")),
         "total_rating": game.get("total_rating"),
         "igdb_rating": game.get("igdb_rating"),

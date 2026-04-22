@@ -56,7 +56,7 @@ def collections_page(request: Request, conn: sqlite3.Connection = Depends(get_db
     for collection in collections:
         collection_dict = dict(collection)
         cursor.execute("""
-            SELECT g.igdb_cover_url, g.cover_image
+            SELECT g.cover_url, g.cover_image
             FROM collection_games cg
             JOIN games g ON cg.game_id = g.id
             WHERE cg.collection_id = ?
@@ -65,7 +65,7 @@ def collections_page(request: Request, conn: sqlite3.Connection = Depends(get_db
         """, (collection_dict["id"],))
         covers = []
         for row in cursor.fetchall():
-            cover = row["igdb_cover_url"] or row["cover_image"]
+            cover = row["cover_url"] or row["cover_image"]
             if cover:
                 covers.append(cover)
         collection_dict["covers"] = covers

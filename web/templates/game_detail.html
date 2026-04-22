@@ -1220,7 +1220,7 @@
              onerror="this.style.display='none';">
         {% endif %}
         <div class="hero-content">
-            {% set cover_url = game.cover_url_override or game.igdb_cover_url or game.cover_image %}
+            {% set cover_url = game.cover_url_override or game.cover_url or game.cover_image %}
             {% if cover_url %}
             <img src="{{ cover_url }}" alt="{{ game.name }}" class="hero-cover"
                  onerror="this.style.display='none';this.nextElementSibling.style.display='flex';">
@@ -1275,7 +1275,7 @@
     <div class="container">
         <div class="content-grid">
             <div class="main-content">
-                {% set summary = game.igdb_summary or game.description %}
+                {% set summary = game.summary or game.description %}
                 {% if summary %}
                 <div class="section">
                     <h2>About</h2>
@@ -1313,7 +1313,7 @@
                 </div>
                 {% endif %}
 
-                {% set screenshots = parse_json(game.igdb_screenshots) %}
+                {% set screenshots = parse_json(game.screenshots) %}
                 {% if screenshots %}
                 <div class="section">
                     <h2>Screenshots</h2>
@@ -1751,7 +1751,7 @@
     <script>
         // Screenshots data
         const screenshots = [
-            {% for url in parse_json(game.igdb_screenshots) or [] %}
+            {% for url in parse_json(game.screenshots) or [] %}
             {{ url.replace('t_screenshot_big', 't_1080p')|tojson }},
             {% endfor %}
         ];

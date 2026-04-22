@@ -138,7 +138,7 @@ def group_games_by_igdb(games):
                 # Use the one with more data as primary (prefer one with playtime or better cover)
                 current_primary = grouped[igdb_id]["primary"]
                 if (game_dict.get("playtime_hours") and not current_primary.get("playtime_hours")) or \
-                   (game_dict.get("igdb_cover_url") and not current_primary.get("igdb_cover_url")):
+                   (game_dict.get("cover_url") and not current_primary.get("cover_url")):
                     grouped[igdb_id]["primary"] = game_dict
         else:
             no_igdb_games.append({

@@ -525,7 +525,7 @@
             {% set game = grouped_game.primary %}
             <div class="game-card" data-game-id="{{ grouped_game.game_ids[0] }}">
                 <a href="/game/{{ grouped_game.game_ids[0] }}" style="text-decoration: none; color: inherit;">
-                    {% set cover_url = game.cover_url_override or game.igdb_cover_url or game.cover_image %}
+                    {% set cover_url = game.cover_url_override or game.cover_url or game.cover_image %}
                     {% if cover_url %}
                     <img src="{{ cover_url }}" alt="{{ game.name }}" class="game-cover" loading="lazy"
                          onerror="this.style.display='none';this.nextElementSibling.style.display='flex';">
