@@ -103,7 +103,8 @@ class IGDBClient:
                    involved_companies.company.name, involved_companies.developer,
                    involved_companies.publisher,
                    cover.url, screenshots.url,
-                   external_games.uid, external_games.category;
+                   external_games.uid, external_games.category,
+                   websites.url;
             limit 5;
         '''
         results = self._request("games", body)
@@ -120,7 +121,8 @@ class IGDBClient:
                    involved_companies.company.name, involved_companies.developer,
                    involved_companies.publisher,
                    cover.url, screenshots.url,
-                   external_games.uid, external_games.category;
+                   external_games.uid, external_games.category,
+                   websites.url;
             limit 15;
         '''
         return self._request("games", body)
@@ -153,7 +155,8 @@ class IGDBClient:
                    involved_companies.company.name, involved_companies.developer,
                    involved_companies.publisher,
                    cover.url, screenshots.url,
-                   external_games.uid, external_games.category;
+                   external_games.uid, external_games.category,
+                   websites.url;
             limit 1;
         '''
         results = self._request("games", body)
@@ -172,7 +175,8 @@ class IGDBClient:
                    involved_companies.company.name, involved_companies.developer,
                    involved_companies.publisher,
                    cover.url, screenshots.url,
-                   external_games.uid, external_games.category;
+                   external_games.uid, external_games.category,
+                   websites.url;
             limit 1;
         '''
         req = self._request("games", body)
@@ -191,7 +195,8 @@ class IGDBClient:
                    involved_companies.company.name, involved_companies.developer,
                    involved_companies.publisher,
                    cover.url, screenshots.url,
-                   external_games.uid, external_games.category;
+                   external_games.uid, external_games.category,
+                   websites.url;
             limit 1;
         '''
         req = self._request("games", body)
@@ -261,7 +266,8 @@ class IGDBClient:
                    involved_companies.company.name, involved_companies.developer,
                    involved_companies.publisher,
                    cover.url, screenshots.url, artworks.url, videos.video_id,
-                   external_games.uid, external_games.category;
+                   external_games.uid, external_games.category,
+                   websites.url;
             limit 500;
         '''
 
@@ -422,7 +428,8 @@ class IGDBClient:
                        involved_companies.company.name, involved_companies.developer,
                        involved_companies.publisher,
                        cover.url, screenshots.url,
-                       external_games.uid, external_games.category;
+                       external_games.uid, external_games.category,
+                       websites.url;
                 limit {BATCH};
             '''
             games = self._request("games", body) or []
@@ -475,6 +482,13 @@ class IGDBClient:
             # Category 1 = Steam
             if ext_game.get("category") == 1:
                 return str(ext_game.get("uid"))
+
+        urls = game_data.get("websites", [])
+        for website in urls:
+            if website.get("url", "") and "steampowered.com/app/" in website["url"]:
+                match = re.search(r"/app/(\d+)", website["url"])
+                if match:
+                    return match.group(1)
 
         return None
 
