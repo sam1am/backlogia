@@ -145,9 +145,7 @@ class MetacriticClient:
 
         # Get critic score (Metascore)
         metascore_el = soup.select_one(
-            'div[class*="c-siteReviewScore"] span, '
-            'span[class*="metascore_w"], '
-            'div[class*="metascore"] span'
+            'div[data-testid="critic-reviews"] span[data-testid="global-score-value"]'
         )
         if metascore_el:
             score_text = metascore_el.get_text(strip=True)
@@ -164,9 +162,7 @@ class MetacriticClient:
 
         # Get user score
         userscore_el = soup.select_one(
-            'div[class*="c-siteReviewScore_user"] span, '
-            'span[class*="user"], '
-            'div[class*="userscore"] span'
+            'div[data-testid="user-reviews"] span[data-testid="global-score-value"]'
         )
         if userscore_el:
             score_text = userscore_el.get_text(strip=True)
