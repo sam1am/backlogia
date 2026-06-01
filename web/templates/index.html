@@ -90,6 +90,66 @@
             opacity: 0.8;
         }
 
+        .nav-hamburger {
+            display: none;
+            background: none;
+            border: none;
+            color: #e4e4e4;
+            cursor: pointer;
+            padding: 8px;
+            border-radius: 8px;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .nav-hamburger:hover {
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        .nav-hamburger svg {
+            width: 24px;
+            height: 24px;
+            display: block;
+        }
+
+        @media (max-width: 768px) {
+            .top-nav {
+                padding: 12px 20px;
+            }
+
+            .nav-hamburger {
+                display: flex;
+            }
+
+            .nav-links {
+                display: none;
+                position: absolute;
+                top: 100%;
+                left: 0;
+                right: 0;
+                flex-direction: column;
+                gap: 0;
+                background: rgba(13, 13, 26, 0.98);
+                border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+                padding: 10px 0;
+                backdrop-filter: blur(10px);
+            }
+
+            .nav-links.open {
+                display: flex;
+            }
+
+            .nav-link {
+                padding: 12px 20px;
+                width: 100%;
+            }
+
+            .nav-link.active {
+                border-bottom: none;
+                border-left: 2px solid #667eea;
+            }
+        }
+
         .container {
             max-width: 1400px;
             margin: 0 auto;
@@ -1377,6 +1437,13 @@
             <a href="/random" class="nav-link random">Random</a>
             <a href="/settings" class="nav-link">Settings</a>
         </div>
+        <button class="nav-hamburger" onclick="document.querySelector('.nav-links').classList.toggle('open')" aria-label="Toggle navigation">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <line x1="3" y1="6" x2="21" y2="6"></line>
+                <line x1="3" y1="12" x2="21" y2="12"></line>
+                <line x1="3" y1="18" x2="21" y2="18"></line>
+            </svg>
+        </button>
     </nav>
 
     <div class="container">
