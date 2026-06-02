@@ -1,3 +1,6 @@
+> [!CAUTION]
+> This repo was previously infected as part of the [PolinRider](https://github.com/OpenSourceMalware/PolinRider) supply chain attack. It has now been cleaned. Users who installed any version of Backlogia are not affected. Users who cloned the repo and built it locally may have been affected. See more info [here](https://github.com/sam1am/anyapk/discussions/64).
+
 <p align="center">
   <img src="web/static/favicons/Backlogia_logo.png" alt="Backlogia" width="128" height="128">
 </p>
