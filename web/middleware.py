@@ -10,7 +10,7 @@ from starlette.responses import JSONResponse, RedirectResponse
 from .services.auth_service import validate_session, user_exists
 
 # Paths that are always accessible (no auth required)
-PUBLIC_PATHS = {"/login", "/setup", "/auth/login", "/auth/setup", "/auth/logout"}
+PUBLIC_PATHS = {"/login", "/auth/login", "/auth/logout"}
 PUBLIC_PREFIXES = ("/static/",)
 
 
@@ -21,6 +21,13 @@ class AuthMiddleware(BaseHTTPMiddleware):
 
     async def dispatch(self, request, call_next):
         path = request.url.path
+
+        # /setup and /auth/setup are only accessible before the owner account is created
+        if path in ("/setup", "/auth/setup"):
+            if not user_exists():
+                response = await call_next(request)
+                return response
+            return RedirectResponse(url="/login", status_code=303)
 
         # Always allow public paths
         if path in PUBLIC_PATHS or path.startswith(PUBLIC_PREFIXES) or path == "/sw.js":
