@@ -11,7 +11,7 @@ from .services.auth_service import validate_session, user_exists
 
 # Paths that are always accessible (no auth required)
 PUBLIC_PATHS = {"/login", "/setup", "/auth/login", "/auth/setup", "/auth/logout"}
-PUBLIC_PREFIXES = ("/static/",)
+PUBLIC_PREFIXES = ("/static/", "/api/import/")
 
 
 class AuthMiddleware(BaseHTTPMiddleware):
