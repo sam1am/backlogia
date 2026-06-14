@@ -231,9 +231,9 @@ def discover(request: Request, conn: sqlite3.Connection = Depends(get_db)):
     has_igdb_ids = bool(igdb_ids)
 
     return templates.TemplateResponse(
+        request,
         "discover.html",
         {
-            "request": request,
             "highly_rated": highly_rated,
             "hidden_gems": hidden_gems,
             "most_played": most_played,
