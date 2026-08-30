@@ -232,6 +232,7 @@ def library(
     genre_counts = dict(sorted(genre_counts.items(), key=lambda x: (-x[1], x[0].lower())))
 
     return templates.TemplateResponse(
+        request,
         "index.html",
         {
             "request": request,
@@ -304,6 +305,7 @@ def game_detail(request: Request, game_id: int, conn: sqlite3.Connection = Depen
             primary_game = g
 
     return templates.TemplateResponse(
+        request,
         "game_detail.html",
         {
             "request": request,
@@ -355,6 +357,7 @@ def hidden_games(
     games = cursor.fetchall()
 
     return templates.TemplateResponse(
+        request,
         "hidden_games.html",
         {
             "request": request,
@@ -387,6 +390,7 @@ def removed_games(
     games = cursor.fetchall()
 
     return templates.TemplateResponse(
+        request,
         "removed_games.html",
         {
             "request": request,

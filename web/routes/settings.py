@@ -76,6 +76,7 @@ def settings_page(
     hidden_count = cursor.fetchone()[0]
 
     return templates.TemplateResponse(
+        request,
         "settings.html",
         {
             "request": request,

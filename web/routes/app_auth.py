@@ -52,6 +52,7 @@ def login_page(request: Request, next: str = "/"):
         return RedirectResponse(url="/setup", status_code=303)
 
     return templates.TemplateResponse(
+        request,
         "login.html",
         {"request": request, "next": next, "error": ""},
     )
@@ -68,6 +69,7 @@ def auth_login(
     user = verify_user(username, password)
     if user is None:
         return templates.TemplateResponse(
+            request,
             "login.html",
             {"request": request, "next": next, "error": "Invalid username or password"},
             status_code=401,
@@ -90,6 +92,7 @@ def setup_page(request: Request):
         return RedirectResponse(url="/login", status_code=303)
 
     return templates.TemplateResponse(
+        request,
         "setup.html",
         {"request": request, "error": ""},
     )
@@ -117,6 +120,7 @@ def auth_setup(
 
     if error:
         return templates.TemplateResponse(
+            request,
             "setup.html",
             {"request": request, "error": error},
             status_code=400,

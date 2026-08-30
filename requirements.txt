@@ -8,10 +8,11 @@ legendary-gl
 # (uses system SQLite)
 
 # Web interface
-fastapi
+fastapi==0.141.1
+starlette==1.6.0
 uvicorn[standard]
 python-multipart
-jinja2
+jinja2==3.1.6
 
 # IGDB integration
 python-dotenv
